@@ -1,0 +1,89 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity"
+    android:background="#eeeeee">
+
+    <LinearLayout
+        android:layout_gravity="center_horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="50dp"
+        android:paddingBottom="50dp"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/btn_tracking"
+            android:text="Tracking"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:textSize="25sp"
+            android:padding="30dp"
+            style="@style/Widget.AppCompat.Button"/>
+
+        <Button
+            android:id="@+id/btn_alt_tracking_1"
+            android:text="ALT tracking 1 placeholder never visible"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:textSize="25sp"
+            android:padding="30dp"
+            android:layout_marginTop="20dp"
+            android:visibility="gone"
+            style="@style/Widget.AppCompat.Button"/>
+
+        <Button
+            android:id="@+id/btn_alt_tracking_2"
+            android:text="ALT tracking 2 placeholder never visible"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:textSize="25sp"
+            android:padding="30dp"
+            android:layout_marginTop="20dp"
+            android:visibility="gone"
+            style="@style/Widget.AppCompat.Button"/>
+
+        <Button
+            android:id="@+id/btn_data_collection"
+            android:text="Data collection"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:textSize="25sp"
+            android:padding="30dp"
+            android:layout_marginTop="20dp"
+            style="@style/Widget.AppCompat.Button"/>
+
+        <Button
+            android:id="@+id/btn_calibration"
+            android:text="Camera calibration"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:textSize="25sp"
+            android:padding="30dp"
+            android:layout_marginTop="20dp"
+            style="@style/Widget.AppCompat.Button"/>
+
+        <Button
+            android:id="@+id/btn_share"
+            android:text="Share recording"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:textSize="25sp"
+            android:padding="30dp"
+            android:layout_marginTop="20dp"
+            style="@style/Widget.AppCompat.Button.Borderless"/>
+
+        <Button
+            android:id="@+id/btn_settings"
+            android:text="Settings"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:textSize="25sp"
+            android:padding="30dp"
+            android:layout_marginTop="20dp"
+            style="@style/Widget.AppCompat.Button.Borderless"/>
+    </LinearLayout>
+
+</ScrollView>

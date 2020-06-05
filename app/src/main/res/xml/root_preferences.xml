@@ -1,0 +1,137 @@
+<!--
+  ~ Copyright 2018 The app Open Source Project
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory app:title="Algorithm">
+        <ListPreference
+            app:defaultValue="0"
+            app:entries="@array/placeholders"
+            app:entryValues="@array/placeholders"
+            app:key="target_camera"
+            app:title="Camera"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference
+            app:defaultValue="640x480"
+            app:entries="@array/placeholders"
+            app:entryValues="@array/placeholders"
+            app:key="target_size"
+            app:title="Resolution"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference
+            app:defaultValue="30"
+            app:entries="@array/fps"
+            app:entryValues="@array/fps"
+            app:key="fps"
+            app:title="FPS"
+            app:useSimpleSummaryProvider="true" />
+
+        <EditTextPreference
+            app:defaultValue="1000"
+            app:key="focal_length_1280"
+            app:title="Focal length @ 1280x720"
+            app:useSimpleSummaryProvider="true" />
+
+        <SwitchPreference
+            app:key="enable_odometry"
+            app:title="Odometry"
+            app:defaultValue="true"
+            app:summary="not only feature tracking"/>
+
+        <SwitchPreference
+            app:key="enable_slam"
+            app:title="SLAM"
+            app:defaultValue="true"
+            app:summary="enable SLAM"/>
+
+        <SwitchPreference
+            app:key="fast_mode"
+            app:title="FAST mode"
+            app:defaultValue="false" />
+
+        <SwitchPreference
+            app:key="use_calib_acc"
+            app:title="Use calibrated acc"
+            app:dependency="enable_odometry"
+            app:defaultValue="true" />
+
+        <SwitchPreference
+            app:key="use_calib_gyro"
+            app:title="Use calibrated gyro"
+            app:dependency="enable_odometry"
+            app:defaultValue="true" />
+
+        <SwitchPreference
+            app:key="jump_filter"
+            app:title="Jump filter"
+            app:dependency="enable_odometry"
+            app:defaultValue="true" />
+
+    </PreferenceCategory>
+    <PreferenceCategory app:title="Visualization">
+        <ListPreference
+            app:defaultValue="plain_video"
+            app:entries="@array/placeholders"
+            app:entryValues="@array/placeholders"
+            app:key="visualization"
+            app:title="Video"
+            app:dependency="enable_odometry"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference
+            app:defaultValue="track"
+            app:entries="@array/placeholders"
+            app:entryValues="@array/placeholders"
+            app:key="overlay_visualization"
+            app:title="Overlay"
+            app:dependency="enable_odometry"
+            app:useSimpleSummaryProvider="true" />
+
+        <SwitchPreference
+            app:key="show_text_debug"
+            app:title="Text debug stats"
+            app:defaultValue="true" />
+    </PreferenceCategory>
+    <PreferenceCategory app:title="Data recording">
+        <SwitchPreference
+            app:key="record_tracking_poses"
+            app:title="Tracking: record poses"
+            app:summary="Record poses while tracking, also in external AR tracking modes"
+            app:defaultValue="false">
+        </SwitchPreference>
+        <SwitchPreference
+            app:key="record_tracking_sensors_and_video"
+            app:title="Tracking: Record sensors &amp; video"
+            app:summary="Warning: exprimental. May result to skipped frames and bad data compared to using the data recording mode"
+            app:defaultValue="false">
+        </SwitchPreference>
+        <SwitchPreference
+            app:key="record_gps"
+            app:title="Record GPS"
+            app:summary="Only applies in the data collection mode OR if 'record poses' has also been enabled"
+            app:defaultValue="false">
+        </SwitchPreference>
+        <SwitchPreference
+            app:key="record_google_wifi_locations"
+            app:title="Record WiFi locations"
+            app:summary="Like 'Record GPS', but uses Google's WiFi &amp; cellular locations. Enabling this helps debugging location data recording since these also work indoors. Also a good option if you want to all available location data and don't care where it's from."
+            app:defaultValue="false">
+        </SwitchPreference>
+    </PreferenceCategory>
+</PreferenceScreen>

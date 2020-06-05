@@ -1,0 +1,3 @@
+[submodule "mobile-cv-suite"]
+	path = mobile-cv-suite
+	url = https://github.com/AaltoML/mobile-cv-suite.git

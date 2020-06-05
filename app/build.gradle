@@ -1,0 +1,139 @@
+apply plugin: 'com.android.application'
+apply plugin: 'io.fabric'
+
+android {
+    compileSdkVersion 29
+    buildToolsVersion "28.0.3"
+    defaultConfig {
+        applicationId "org.example.viotester"
+        minSdkVersion 23
+        targetSdkVersion 29
+
+        buildConfigField "boolean", "USE_SLAM", "true"
+
+        externalNativeBuild {
+            cmake {
+                arguments "-DANDROID_TOOLCHAIN=clang",
+                        "-DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo",
+                        "-DANDROID_STL=c++_static",
+                        "-DCMAKE_VERBOSE_MAKEFILE=ON"
+                // speed up by compiling only for relevant architectures
+                abiFilters "arm64-v8a"
+                targets "vio_main"
+            }
+        }
+    }
+    dependencies {
+        // needed by permission helper
+        implementation 'androidx.appcompat:appcompat:1.1.0'
+        implementation "com.google.android.material:material:1.0.0"
+        implementation 'androidx.preference:preference:1.1.0'
+        implementation 'com.google.firebase:firebase-analytics:17.2.0'
+        implementation 'com.crashlytics.sdk.android:crashlytics:2.10.1'
+        implementation 'org.kamranzafar:jtar:2.2'
+        implementation 'org.codehaus.jackson:jackson-mapper-asl:1.9.13'
+        // may be needed or ARCore + Location recording may not work... which is VERY SUSPICIOUS
+        implementation 'com.google.android.gms:play-services-location:16.0.0'
+
+    }
+    externalNativeBuild {
+        cmake {
+            path "src/main/jni/CMakeLists.txt"
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+        }
+    }
+
+    flavorDimensions "mode"
+
+    productFlavors {
+        // NOTE: the default build variant is either the one that is listed first or the
+        // first one alphabetically, depending on Android Studio version. Make sure the
+        // intended default is actually the first one when sorted alphabetically too
+        a_default {
+            externalNativeBuild {
+                cmake {
+                    arguments += "-DUSE_SLAM=ON"
+                }
+            }
+        }
+        noslam {
+            buildConfigField "boolean", "USE_SLAM", "false"
+            versionNameSuffix "-noslam"
+            externalNativeBuild {
+                cmake {
+                    arguments += "-DUSE_SLAM=OFF"
+                }
+            }
+        }
+        arcore {
+            versionNameSuffix "-arcore"
+            externalNativeBuild {
+                cmake {
+                    arguments += "-DUSE_EXTERNAL_AR=ON"
+                }
+            }
+            dependencies {
+                // ARCore library
+                implementation 'com.google.ar:core:1.14.0'
+            }
+        }
+        arengine {
+            versionNameSuffix "-arengine"
+            externalNativeBuild {
+                cmake {
+                    arguments += "-DUSE_EXTERNAL_AR=ON"
+                }
+            }
+            dependencies {
+                // Include a local Huawei AREngine library
+                implementation fileTree(include: ['*.aar'], dir: 'src/arengine/libs')
+
+            }
+        }
+        arcoreandengine {
+            versionNameSuffix "-arcore-arengine"
+            externalNativeBuild {
+                cmake {
+                    arguments += "-DUSE_EXTERNAL_AR=ON"
+                }
+            }
+            dependencies {
+                implementation fileTree(include: ['*.aar'], dir: 'src/arengine/libs')
+                implementation 'com.google.ar:core:1.14.0'
+            }
+        }
+    }
+
+    // delete large DBoW2 file for the non-SLAM build
+    // see https://stackoverflow.com/a/39760001/1426569
+    // another option would be to symlink the file to each other variant asset folder separately...
+    // Like currently done for jniLibs, since it's not possible to exclude them by build variant,
+    // a feature that has existed in some Gradle versions but recently broken without workaround
+    applicationVariants.all { variant ->
+        println "just listing the build variants: ${variant.name}"
+        if (variant.name.contains('noslam')) {
+            // For the record, I absolutely despise Gradle. This thing, which I found on
+            // StackOverflow works, but it is not documented... I mean, at all. Just Google
+            // "mergeAssetsProvider". All hits are StackOverflow or Github issues. You can't even
+            // find the source code for this DSL. In addition, this these APIs change and break
+            // every few months.
+            variant.mergeAssetsProvider.configure {
+                doLast {
+                    println "now trying to delete all .dbow2 files in ${outputDir}"
+                    delete(fileTree(dir: outputDir, includes: ['**/*.dbow2']))
+                }
+            }
+        }
+    }
+
+    packagingOptions {
+        exclude 'META-INF/ASL2.0'
+    }
+}
+
+apply plugin: 'com.google.gms.google-services'

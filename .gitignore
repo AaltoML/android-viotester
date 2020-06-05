@@ -1,0 +1,24 @@
+# Android Studio configuration.
+*.iml
+.idea/
+
+# Gradle configuration.
+.gradle/
+build/
+release/
+
+# User configuration.
+local.properties
+
+# Android cmake dirs
+.externalNativeBuild
+.cxx
+
+# generic data
+data/
+
+app/google-services.json
+
+# the custom module to be benchmarked against ARCore/AREngine
+custom-vio/
+custom-vio

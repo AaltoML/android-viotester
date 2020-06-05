@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <ListView
+        android:id="@+id/share_data_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+    <TextView xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/share_data_empty_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:padding="20dp"
+        android:textStyle="italic"
+        android:text="No recordings. Create one with 'Data collection'">
+    </TextView>
+</LinearLayout>

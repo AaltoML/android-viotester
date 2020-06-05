@@ -1,0 +1,29 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal">
+
+    <TextureView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/viotester_activity_texture_view"
+        android:visibility="gone"/>
+
+    <android.opengl.GLSurfaceView
+        android:id="@+id/gl_surface_view"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"/>
+
+    <TextView
+        android:id="@+id/stats_text_view"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:gravity="center_horizontal"
+        android:layout_gravity="bottom"
+        android:textColor="#ffffff"
+        android:shadowColor="#000000"
+        android:shadowRadius="2"
+        android:padding="10dp"
+        android:text="" />
+</FrameLayout>

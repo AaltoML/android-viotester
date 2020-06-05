@@ -1,0 +1,2 @@
+# Do not add the AREngine AAR to Git
+libs/*.aar
