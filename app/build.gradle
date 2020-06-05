@@ -9,7 +9,10 @@ android {
         minSdkVersion 23
         targetSdkVersion 29
 
+        def hasCustomVio = new File("custom-vio").exists()
+
         buildConfigField "boolean", "USE_SLAM", "true"
+        buildConfigField "boolean", "USE_CUSTOM_VIO", "${hasCustomVio}"
 
         externalNativeBuild {
             cmake {
@@ -17,6 +20,7 @@ android {
                         "-DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo",
                         "-DANDROID_STL=c++_static",
                         "-DCMAKE_VERBOSE_MAKEFILE=ON"
+                        "-DUSE_CUSTOM_VIO=${hasCustomVio ? "ON" : "OFF"}"
                 // speed up by compiling only for relevant architectures
                 abiFilters "arm64-v8a"
                 targets "vio_main"
@@ -55,11 +59,6 @@ android {
         // first one alphabetically, depending on Android Studio version. Make sure the
         // intended default is actually the first one when sorted alphabetically too
         a_default {
-            externalNativeBuild {
-                cmake {
-                    arguments += "-DUSE_SLAM=ON"
-                }
-            }
         }
         noslam {
             buildConfigField "boolean", "USE_SLAM", "false"
@@ -72,11 +71,6 @@ android {
         }
         arcore {
             versionNameSuffix "-arcore"
-            externalNativeBuild {
-                cmake {
-                    arguments += "-DUSE_EXTERNAL_AR=ON"
-                }
-            }
             dependencies {
                 // ARCore library
                 implementation 'com.google.ar:core:1.14.0'
@@ -84,11 +78,6 @@ android {
         }
         arengine {
             versionNameSuffix "-arengine"
-            externalNativeBuild {
-                cmake {
-                    arguments += "-DUSE_EXTERNAL_AR=ON"
-                }
-            }
             dependencies {
                 // Include a local Huawei AREngine library
                 implementation fileTree(include: ['*.aar'], dir: 'src/arengine/libs')
@@ -97,11 +86,6 @@ android {
         }
         arcoreandengine {
             versionNameSuffix "-arcore-arengine"
-            externalNativeBuild {
-                cmake {
-                    arguments += "-DUSE_EXTERNAL_AR=ON"
-                }
-            }
             dependencies {
                 implementation fileTree(include: ['*.aar'], dir: 'src/arengine/libs')
                 implementation 'com.google.ar:core:1.14.0'

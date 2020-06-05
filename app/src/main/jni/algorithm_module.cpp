@@ -4,9 +4,11 @@
 using AlgoPtr = std::unique_ptr<AlgorithmModule>;
 using json = AlgorithmModule::json;
 
-AlgoPtr buildTracking(int w, int h, const json &settings);
 AlgoPtr buildRecorder(int w, int h, const json &settings);
 AlgoPtr buildCameraCalibrator(int w, int h);
+#ifdef USE_CUSTOM_VIO
+AlgoPtr buildTracking(int w, int h, const json &settings);
+#endif
 
 AlgoPtr AlgorithmModule::build(int width, int height, const std::string &name, const json *settings) {
     if (name == "calibration") {
@@ -14,7 +16,11 @@ AlgoPtr AlgorithmModule::build(int width, int height, const std::string &name, c
     } else if (name == "recording" || name == "external") {
         return buildRecorder(width, height, *settings);
     } else if (name == "tracking") {
+#ifdef USE_CUSTOM_VIO
         return buildTracking(width, height, *settings);
+#else
+        assert(false && "custom VIO not built");
+#endif
     } else {
         assert(false && "no such module");
     }

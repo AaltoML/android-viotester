@@ -12,12 +12,8 @@ add_definitions(-include always_assert.h)
 set(target vio_main)
 project(${target} CXX)
 
-message(STATUS "Custom VIO build ${target}")
-
-set(BUILD_CLI_TOOLS OFF CACHE STRING "CLI tools" FORCE)
 set(ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../..")
 set(mobile-cv-suite_DIR "${ROOT_DIR}/mobile-cv-suite")
-add_subdirectory("${ROOT_DIR}/custom-vio/viotester-integration/android" build-custom-vio)
 
 add_library(${target} SHARED
         algorithm_worker.cpp
@@ -31,10 +27,20 @@ add_library(${target} SHARED
         opengl/util.cpp)
 
 set(VIO_ANDROID_LIBS
-        mobile-cv-suite
         "GLESv2"
-        ${CUSTOM_VIO_LIBS}
+        mobile-cv-suite
         mediandk
         log)
+
+option(USE_CUSTOM_VIO "Compile with a custom VIO module" OFF)
+if (USE_CUSTOM_VIO)
+    # assumes the VIO module also uses mobile-cv-suite
+    message(STATUS "Custom VIO build ${target}")
+    add_subdirectory("${ROOT_DIR}/custom-vio/viotester-integration/android" build-custom-vio)
+    list(APPEND VIO_ANDROID_LIBS ${CUSTOM_VIO_LIBS})
+    target_compile_definitions(${target} PRIVATE "-DUSE_CUSTOM_VIO")
+else()
+    find_package(mobile-cv-suite REQUIRED)
+endif()
 
 target_link_libraries(${target} ${VIO_ANDROID_LIBS})

@@ -44,6 +44,10 @@ public class MainActivity extends Activity {
             arCoreBtn.setVisibility(View.VISIBLE);
             arCoreBtn.setOnClickListener(goToActivity(klass));
         }
+
+        if (!BuildConfig.USE_CUSTOM_VIO) {
+            findViewById(R.id.btn_tracking).setVisibility(View.GONE);
+        }
         findViewById(R.id.btn_tracking).setOnClickListener(goToActivity(TrackingActivity.class));
         findViewById(R.id.btn_data_collection).setOnClickListener(goToActivity(DataCollectionActivity.class));
         findViewById(R.id.btn_calibration).setOnClickListener(goToActivity(CalibrationActivity.class));
