@@ -53,11 +53,11 @@ struct RecordingModule : public AlgorithmModule {
     }
 
     void addGyro(double t, const recorder::Vector3d &val) final {
-        // api->addGyro(t, val); // TODO
+        if (recordSensors) recorder->addGyroscope(t, val.x, val.y, val.z);
     }
 
     void addAcc(double t, const recorder::Vector3d &val) final {
-        // api->addAcc(t, val); // TODO
+        if (recordSensors) recorder->addAccelerometer(t, val.x, val.y, val.z);
     }
 
     recorder::Pose addFrame(double t, const cv::Mat &grayFrame, cv::Mat *colorFrame) final {
@@ -75,8 +75,6 @@ struct RecordingModule : public AlgorithmModule {
                 );
             }
             if (colorFrame->channels() == 4) {
-                // rgbaOutputFrame is a "workspace variable" that is also
-                // used elsewhere
                 cv::cvtColor(*colorFrame, rgbaOutputFrame, cv::COLOR_BGRA2BGR);
                 // This took a while to debug: if the image has 3 channels, the
                 // default channel order assumed by OpenCV image IO functions
@@ -100,11 +98,11 @@ struct RecordingModule : public AlgorithmModule {
     }
 
     void addGps(double t, const AlgorithmModule::Gps &gps) final {
-        // api->appendPoseHistoryGps(t, gps.latitude, gps.longitude, gps.accuracy, gps.altitude); TODO
+        recorder->addGps(t, gps.latitude, gps.longitude, gps.accuracy, gps.altitude);
     }
 
     void addJsonData(const json &json) final {
-        // api->recordJson(json); TODO
+        recorder->addJson(json);
     }
 
     std::string status() const final {
