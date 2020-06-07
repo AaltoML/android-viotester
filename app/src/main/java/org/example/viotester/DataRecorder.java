@@ -20,7 +20,7 @@ import java.util.Locale;
 public class DataRecorder {
     private static final String TAG = DataRecorder.class.getName();
     private final File mFolder;
-    private final String mVideoFileName;
+    private final String mVideoFileNamePrefix;
     private final String mTarFileName;
     private final String mLogFileName;
 
@@ -44,16 +44,16 @@ public class DataRecorder {
         if (!mFolder.mkdir()) {
             throw new RuntimeException("failed to create folder " + name);
         }
-        mVideoFileName = new File(mFolder, "data.avi").getAbsolutePath();
+        mVideoFileNamePrefix = new File(mFolder, "data").getAbsolutePath();
         mLogFileName = new File(mFolder, "data.jsonl").getAbsolutePath();
         mTarFileName = new File(rootFolder, name + ".tar").getAbsolutePath();
 
-        Log.i(TAG,"video file " + mVideoFileName);
+        Log.i(TAG,"video file " + mVideoFileNamePrefix);
         Log.i(TAG, "sensor log file " + mLogFileName);
     }
 
-    public String getVideoFileName() {
-        return mVideoFileName;
+    public String getVideoFileNamePrefix() {
+        return mVideoFileNamePrefix;
     }
     public String getLogFileName() {
         return mLogFileName;

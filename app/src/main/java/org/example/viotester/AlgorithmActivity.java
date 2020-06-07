@@ -157,7 +157,7 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
             mAlgoWorkerSettings.recordingFileName = mDataRecorder.getLogFileName();
         }
         if (mAlgoWorkerSettings.recordSensors) {
-            mAlgoWorkerSettings.videoRecordingFileName = mDataRecorder.getVideoFileName();
+            mAlgoWorkerSettings.videoRecordingFileName = mDataRecorder.getVideoFileNamePrefix();
         }
 
         final boolean showDebugText = prefs.getBoolean("show_text_debug", true);
