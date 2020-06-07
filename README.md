@@ -71,6 +71,8 @@ Requirements:
 
 ## Copyright
 
-The files under `app/src/arcore` that say so at the top of the file, are Licensed under Apache 2 (&copy; Google).
-They have been copied from the ARCore SDK examples.
-To see how they have been modified from their original versions, see the Git commit history or comments beginning with "NOTE".
+The files under `app/src/arcore` that say so at the top of the file,
+are Licensed under Apache 2 (&copy; Google). They have been copied from the ARCore SDK examples.
+To see how they have been modified from their original versions, see comments beginning with "NOTE".
+
+The original code in this repository is also licensed under Apache 2.0.
