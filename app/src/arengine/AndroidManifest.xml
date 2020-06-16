@@ -2,8 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="org.example.viotester"
-    android:versionCode="1"
-    android:versionName="0.9.6-arengine">
+    android:versionCode="1">
     <application>
         <activity android:name=".arengine.AREngineActivity"
             android:configChanges="keyboardHidden|orientation"
