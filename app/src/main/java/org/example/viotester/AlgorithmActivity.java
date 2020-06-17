@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.hardware.SensorManager;
 import android.hardware.camera2.CameraManager;
 import android.location.LocationManager;
+import android.media.Image;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.os.Handler;
@@ -52,6 +53,10 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
 
     protected void logExternalPoseMatrix(long timeNs, float[] viewMtx) {
         mAlgorithmWorker.logExternalPoseMatrix(timeNs, viewMtx, mRecordPrefix);
+    }
+
+    protected void logExternalImage(Image image, long frameNumber) {
+        mAlgorithmWorker.onImage(image, frameNumber);
     }
 
     @Override

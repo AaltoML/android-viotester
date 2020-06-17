@@ -1,5 +1,6 @@
 package org.example.viotester.arengine;
 
+import android.media.Image;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
@@ -24,7 +25,7 @@ import org.example.viotester.PermissionHelper;
 import org.example.viotester.ext_ar.Renderer;
 
 // See the comment in ARCoreActivity about the Gradle bug if you get weird errors
-// from building this clas
+// from building this class
 public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView.Renderer {
     private static final String TAG = AREngineActivity.class.getName();
 
@@ -37,6 +38,8 @@ public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView
     private ARPointCloud mARPointCloud = null;
     private float[] mPointCloudBuffer = null;
     private float[] mPointCloudOutBuffer = null;
+
+    private long frameNumber = 0;
 
     @Override
     public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
@@ -79,6 +82,7 @@ public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView
 
             // If frame is ready, render camera preview image to the GL surface.
             mBackgroundRenderer.draw(frame);
+            logExternalImage(frame.acquireCameraImage(), frameNumber++);
 
             // If not tracking, don't draw 3D objects, show tracking failure reason instead.
             if (camera.getTrackingState() == ARTrackable.TrackingState.PAUSED) {
@@ -140,7 +144,6 @@ public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView
     public void onCreate(Bundle savedInstanceState) {
         mRecordPrefix = "arengine";
         mNativeModule = "external";
-        mRecordCamera = false;
 
         super.onCreate(savedInstanceState);
 
