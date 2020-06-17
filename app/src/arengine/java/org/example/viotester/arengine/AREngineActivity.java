@@ -82,7 +82,12 @@ public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView
 
             // If frame is ready, render camera preview image to the GL surface.
             mBackgroundRenderer.draw(frame);
-            logExternalImage(frame.acquireCameraImage(), frameNumber++);
+            Image image = frame.acquireCameraImage();
+            logExternalImage(image, frameNumber++);
+            // While ARCore requires this, AREngine works without. However, to ensure future
+            // compatibility, it feels safer to call it if AREngine gets more aligned with ARCore
+            // in the future.
+            image.close();
 
             // If not tracking, don't draw 3D objects, show tracking failure reason instead.
             if (camera.getTrackingState() == ARTrackable.TrackingState.PAUSED) {

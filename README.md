@@ -66,8 +66,6 @@ Requirements:
    Available from https://developer.huawei.com/consumer/en/ar after some registration steps. The
    actual file is located inside the sample code folder in multiple copies, e.g.,
    `./AREnginesdk-sample-2.0.0.6/AREnginesdk-sample-2.0.0.6/java/JavaSample/WorldAR_Java/libs/HUAWEI AR Engine SDK_v2.0.0.aar`.
- * Manual download from of `com.huawei.arengine.service.???.apk` and installation to the phone,
-   e.g., `adb install -r com.huawei.arengine.service.1910281436.apk`.
 
 ## Copyright
 

@@ -1,5 +1,6 @@
 package org.example.viotester.arcore;
 
+import android.media.Image;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
@@ -38,6 +39,8 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
     private long mLastPointCloudTimestamp = 0;
     private float[] mPointCloudBuffer = null;
     private float[] mPointCloudOutBuffer = null;
+
+    private long frameNumber = 0;
 
     @Override
     public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
@@ -80,6 +83,9 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
 
             // If frame is ready, render camera preview image to the GL surface.
             mBackgroundRenderer.draw(frame);
+            Image image = frame.acquireCameraImage();
+            logExternalImage(image, frameNumber++);
+            image.close(); // This must be called to release image and free memory
 
             // If not tracking, don't draw 3D objects, show tracking failure reason instead.
             if (camera.getTrackingState() == TrackingState.PAUSED) {
@@ -138,7 +144,6 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
     public void onCreate(Bundle savedInstanceState) {
         mRecordPrefix = "arcore";
         mNativeModule = "external";
-        mRecordCamera = false;
 
         super.onCreate(savedInstanceState);
 

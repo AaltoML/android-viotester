@@ -271,7 +271,7 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
         }
 
         final boolean trackingMode = !mDataCollectionMode;
-        s.recordCamera = mRecordCamera;
+        s.recordCamera =  !trackingMode || prefs.getBoolean("record_tracking_sensors_and_video", false);
         s.recordPoses = mDataCollectionMode || (trackingMode && prefs.getBoolean("record_tracking_poses", false));
         s.recordSensors = mDataCollectionMode || (trackingMode && prefs.getBoolean("record_tracking_sensors_and_video", false));
         final boolean recordingSomething = mDataCollectionMode || s.recordPoses;
