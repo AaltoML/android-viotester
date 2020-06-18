@@ -117,7 +117,11 @@ JNIEXPORT jlong JNICALL Java_org_example_viotester_AlgorithmWorker_processFrame(
         jint chromaPlaneSize,
         jbyteArray yuvDataJava,
         jboolean hasColorFrameJBoolean,
-        jdoubleArray outputPoseDataJava) {
+        jdoubleArray outputPoseDataJava,
+        jint cameraInd,
+        jfloat focalLength,
+        jfloat px,
+        jfloat py) {
 
     auto *yuvBuffer = reinterpret_cast<uint8_t*>(env->GetByteArrayElements(yuvDataJava, nullptr));
     const bool processColorFrames = hasColorFrameJBoolean;
@@ -161,7 +165,9 @@ JNIEXPORT jlong JNICALL Java_org_example_viotester_AlgorithmWorker_processFrame(
     jlong ret = -1;
     cv::Mat grayMatrix(cv::Size(width, height), CV_8UC1, yuvBuffer, rowStride);
 
-    const auto pose = algorithm->addFrame(doubleClock.update(timeNanos), grayMatrix, processColorFrames ? &colorFrameMat : nullptr);
+    const auto pose = algorithm->addFrame(
+            doubleClock.update(timeNanos), grayMatrix, processColorFrames ? &colorFrameMat : nullptr,
+            cameraInd, focalLength, px, py);
     assert(env->GetArrayLength(outputPoseDataJava) == 7);
     auto *outData = env->GetDoubleArrayElements(outputPoseDataJava, nullptr);
     outData[0] = pose.position.x;

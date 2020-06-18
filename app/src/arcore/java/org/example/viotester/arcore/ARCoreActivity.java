@@ -8,6 +8,7 @@ import android.util.Log;
 
 import com.google.ar.core.ArCoreApk;
 import com.google.ar.core.Camera;
+import com.google.ar.core.CameraIntrinsics;
 import com.google.ar.core.Frame;
 import com.google.ar.core.PointCloud;
 import com.google.ar.core.Session;
@@ -83,9 +84,6 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
 
             // If frame is ready, render camera preview image to the GL surface.
             mBackgroundRenderer.draw(frame);
-            Image image = frame.acquireCameraImage();
-            logExternalImage(image, frameNumber++);
-            image.close(); // This must be called to release image and free memory
 
             // If not tracking, don't draw 3D objects, show tracking failure reason instead.
             if (camera.getTrackingState() == TrackingState.PAUSED) {
@@ -95,6 +93,15 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
             // Get projection matrix.
             float[] projmtx = new float[16];
             camera.getProjectionMatrix(projmtx, 0, 0.1f, 100.0f);
+
+            // Send image to native code for recording
+            Image image = frame.acquireCameraImage();
+            CameraIntrinsics intrinsics = camera.getImageIntrinsics();
+            float focalLength = projmtx[0] * image.getWidth() / 2.f;
+            // intrinsics.getFocalLength()[0] is the same, but let's use same method as AREngine version
+            logExternalImage(image, frameNumber++, 0, focalLength,
+                    intrinsics.getPrincipalPoint()[0], intrinsics.getPrincipalPoint()[1]);
+            image.close(); // Release image, otherwise it's kept and we run out of memory
 
             // Get camera matrix and draw.
             float[] viewmtx = new float[16];

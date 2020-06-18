@@ -48,9 +48,8 @@ Also an Android SDK and Android NDK need to be installed.
 
 1. Because of the submodules, clone this repo with the `--recursive` Git option (this may take a while)
 2. `cd mobile-cv-suite`
-3. TODO: should be optional but isn't: run `./scripts/build.sh`
-4. Run `./scripts/android/build.sh`
-5. Then open the project in Android Studio and run app.
+3. Run `./scripts/android/build.sh`
+4. Then open the project in Android Studio and run app.
 
 # ARCore test mode
 

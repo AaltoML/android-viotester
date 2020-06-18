@@ -9,6 +9,7 @@ import android.util.Log;
 import com.huawei.hiar.ARCamera;
 import com.huawei.hiar.AREnginesSelector;
 import com.huawei.hiar.ARFrame;
+import com.huawei.hiar.ARImageMetadata;
 import com.huawei.hiar.ARSession;
 import com.huawei.hiar.AREnginesApk;
 import com.huawei.hiar.ARTrackable;
@@ -82,12 +83,6 @@ public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView
 
             // If frame is ready, render camera preview image to the GL surface.
             mBackgroundRenderer.draw(frame);
-            Image image = frame.acquireCameraImage();
-            logExternalImage(image, frameNumber++);
-            // While ARCore requires this, AREngine works without. However, to ensure future
-            // compatibility, it feels safer to call it if AREngine gets more aligned with ARCore
-            // in the future.
-            image.close();
 
             // If not tracking, don't draw 3D objects, show tracking failure reason instead.
             if (camera.getTrackingState() == ARTrackable.TrackingState.PAUSED) {
@@ -97,6 +92,15 @@ public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView
             // Get projection matrix.
             float[] projmtx = new float[16];
             camera.getProjectionMatrix(projmtx, 0, 0.1f, 100.0f);
+
+            // Send image to native code for recording
+            Image image = frame.acquireCameraImage();
+            float focalLength = projmtx[0] * image.getWidth() / 2.f;
+            logExternalImage(image, frameNumber++, 0, focalLength, -1.f, -1.f);
+            // While ARCore requires this, AREngine works without. However, to ensure future
+            // compatibility, it feels safer to call it if AREngine gets more aligned with ARCore
+            // in the future.
+            image.close();
 
             // Get camera matrix and draw.
             float[] viewmtx = new float[16];

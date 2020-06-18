@@ -70,7 +70,8 @@ public:
         log_debug("initialized camera calibrator");
     }
 
-    Pose addFrame(double t, const cv::Mat &grayMat, cv::Mat *rgbaMat) final {
+    Pose addFrame(double t, const cv::Mat &grayMat, cv::Mat *rgbaMat,
+                  int cameraInd, double focalLength, double px, double py) final {
         assert(rgbaMat != nullptr);
         assert(!colorMat.empty());
         rgbaMat->copyTo(colorMat);

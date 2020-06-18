@@ -55,8 +55,9 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
         mAlgorithmWorker.logExternalPoseMatrix(timeNs, viewMtx, mRecordPrefix);
     }
 
-    protected void logExternalImage(Image image, long frameNumber) {
-        mAlgorithmWorker.onImage(image, frameNumber);
+    protected void logExternalImage(Image image, long frameNumber, int cameraInd,
+                                    float focalLength, float px, float py) {
+        mAlgorithmWorker.onImage(image, frameNumber, cameraInd, focalLength, px, py);
     }
 
     @Override

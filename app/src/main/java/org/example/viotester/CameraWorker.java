@@ -78,7 +78,7 @@ public class CameraWorker {
     interface Listener extends SizeChooser {
         String chooseCamera(List<String> cameras);
         void onCameraStart(CameraParameters cameraParameters);
-        void onImage(Image image, long frameNumber);
+        void onImage(Image image, long frameNumber, int cameraInd, float focalLength, float px, float py);
         double getTargetFps();
         Handler getHandler();
     }
@@ -341,7 +341,7 @@ public class CameraWorker {
                 final long tNanos = image.getTimestamp();
                 mFpsFilter.setTime(tNanos);
                 if (mFpsFilter.poll()) {
-                    mListener.onImage(image, mFrameNumber);
+                    mListener.onImage(image, mFrameNumber, 0, -1.f, -1.f, -1.f);
                 }
                 if (mFpsFilter.pollAll()) {
                     Log.v(TAG,"frame(s) skipped");

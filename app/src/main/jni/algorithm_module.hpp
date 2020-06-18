@@ -23,7 +23,8 @@ public:
 
     virtual void addGyro(double t, const Vector3d &val) = 0;
     virtual void addAcc(double t, const Vector3d &val) = 0;
-    virtual Pose addFrame(double t, const cv::Mat &grayFrame, cv::Mat *colorFrame) = 0;
+    virtual Pose addFrame(double t, const cv::Mat &grayFrame, cv::Mat *colorFrame,
+                          int cameraInd, double focalLength, double px, double py) = 0;
     virtual void addGps(double t, const Gps &gps) {};
     virtual void addJsonData(const json &json) {};
 

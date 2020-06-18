@@ -36,16 +36,17 @@ struct RecordingModule : public AlgorithmModule {
         if (recordSensors) recorder->addAccelerometer(t, val.x, val.y, val.z);
     }
 
-    recorder::Pose addFrame(double t, const cv::Mat &grayFrame, cv::Mat *colorFrame) final {
+    recorder::Pose addFrame(double t, const cv::Mat &grayFrame, cv::Mat *colorFrame,
+                            int cameraInd, double focalLength, double px, double py) final {
         if (recordCamera) {
             assert(colorFrame != nullptr);
             defaultOpenGLRenderer::setBgraCameraData(colorFrame->cols, colorFrame->rows, colorFrame->data);
             recorder->addFrame(recorder::FrameData {
                     .t = t,
-                    .cameraInd = 0,
-                    .focalLength = -1,
-                    .px = -1.0,
-                    .py = -1.0,
+                    .cameraInd = cameraInd,
+                    .focalLength = focalLength,
+                    .px = px,
+                    .py = py,
                     .frameData = colorFrame
             });
         }

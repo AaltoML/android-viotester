@@ -266,7 +266,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     }
 
     @Override
-    public void onImage(Image image, long frameNumber) {
+    public void onImage(Image image, long frameNumber, int cameraInd, float focalLength, float px, float py) {
         final long t = image.getTimestamp();
         mProcessedFpsMonitor.onSample();
 
@@ -278,22 +278,21 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         if (!mInitialized) {
             mInitialized = true;
 
-            float focalLength = -1;
+            mSettings.focalLength = -1;
             if (mCameraParameters != null) {
                 Log.i(TAG, "focal length from camera API: "+mCameraParameters.focalLength);
-                focalLength = mCameraParameters.focalLength;
+                mSettings.focalLength = mCameraParameters.focalLength;
                 mListener.onRelativeFocalLength(mCameraParameters.focalLength / width);
             }
             else if (mSettings.relativeFocalLength != null) {
                 Log.i(TAG, "relative focal length from settings: " + mSettings.relativeFocalLength);
-                focalLength = mSettings.relativeFocalLength * width;
+                mSettings.focalLength = mSettings.relativeFocalLength * width;
             } else {
                 Log.i(TAG, "default focal length");
             }
 
             mSettings.principalPointX = mCameraParameters == null ? -1 : mCameraParameters.principalPointX;
             mSettings.principalPointY = mCameraParameters == null ? -1 : mCameraParameters.principalPointY;
-            mSettings.focalLength = focalLength;
 
             mProcessColorFrames = configure(width, height, mSettings.moduleName, jsonSettings());
         }
@@ -341,7 +340,11 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
                 colorPlaneSize,
                 mCameraImageBuffer,
                 mProcessColorFrames,
-                mPoseData);
+                mPoseData,
+                cameraInd,
+                focalLength,
+                px,
+                py);
 
         if (visualizationEnabled) {
             drawVisualization();
@@ -447,7 +450,8 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
             int rowStride, int chromaPixelStride, int grayImageSize, int chromaPlaneSize,
             byte[] yuvData,
             boolean hasColorData,
-            double[] outPoseData);
+            double[] outPoseData,
+            int cameraInd, float focalLength, float px, float py);
 
     public native void drawVisualization();
     public native void processGyroSample(long timeNanos, float x, float y, float z);
