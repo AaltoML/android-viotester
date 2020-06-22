@@ -34,8 +34,7 @@ public class CameraWorker {
 
     private static final int MAX_BUFFERED_IMAGES = 3;
 
-    private final HandlerThread mHandlerThread;
-    private final Handler mHandler;
+    private final Handler mNativeHandler;
     private final CameraManager mCameraManager;
     private final CameraDevice.StateCallback mStateCallback;
     private final CameraCaptureSession.CaptureCallback mCaptureCallback;
@@ -83,15 +82,13 @@ public class CameraWorker {
         Handler getHandler();
     }
 
-    public CameraWorker(CameraManager manager, @Nullable TextureView view, Listener listener) {
+    public CameraWorker(CameraManager manager, @Nullable TextureView view, Listener listener, Handler handler) {
         Log.d(TAG, "ctor");
         mCameraManager = manager;
         mTextureView = view;
 
         mListener = listener;
-        mHandlerThread = new HandlerThread("CameraWorker");
-        mHandlerThread.start();
-        mHandler = new Handler(mHandlerThread.getLooper());
+        mNativeHandler = handler;
         mFpsFilter = new FpsFilter(listener.getTargetFps());
 
         mFpsMonitor = new FrequencyMonitor(new FrequencyMonitor.Listener() {
@@ -189,14 +186,14 @@ public class CameraWorker {
 
     private void openCamera() {
         Log.v(TAG, "openCamera");
-        mHandler.post(new Runnable() {
+        mNativeHandler.post(new Runnable() {
             @Override
             public void run() {
                 mFpsMonitor.start();
                 try {
                     mCameraId = selectCamera(mCameraManager);
                     logCameraParameters();
-                    mCameraManager.openCamera(mCameraId, mStateCallback, mHandler);
+                    mCameraManager.openCamera(mCameraId, mStateCallback, mNativeHandler);
                     mFpsFilter.reset();
                 } catch (CameraAccessException e) {
                     throw new RuntimeException(e);
@@ -372,7 +369,7 @@ public class CameraWorker {
                                 previewRequest.addTarget(target);
                             }
                             previewRequest.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-                            mCaptureSession.setRepeatingRequest(previewRequest.build(), mCaptureCallback, mHandler);
+                            mCaptureSession.setRepeatingRequest(previewRequest.build(), mCaptureCallback, mNativeHandler);
                         } catch (CameraAccessException e) {
                             throw new RuntimeException(e);
                         }
@@ -390,37 +387,20 @@ public class CameraWorker {
                             @NonNull CameraCaptureSession cameraCaptureSession) {
                         throw new RuntimeException("failed");
                     }
-                }, mHandler);
+                }, mNativeHandler); // TODO: Use another Handler here?
     }
 
-    public void destroy(final Runnable whenStopped) {
+    public void destroy() {
         Log.d(TAG, "destroy");
-        mHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                // close camera
-                Log.d(TAG, "destroy runnable");
-                mKilled = true;
-                mFpsMonitor.stop();
-
-                if (null != mCaptureSession) {
-                    mCaptureSession.close();
-                    mCaptureSession = null;
-                }
-                if (null != mCameraDevice) {
-                    mCameraDevice.close();
-                    mCameraDevice = null;
-                }
-
-                mHandlerThread.quitSafely();
-                whenStopped.run();
-            }
-        });
-        try {
-            mHandlerThread.join();
-            Log.d(TAG, "Handler thread stopped");
-        } catch (InterruptedException e) {
-            Log.e(TAG, "interrupted while stopping handler thread");
+        mKilled = true;
+        mFpsMonitor.stop();
+        if (null != mCaptureSession) {
+            mCaptureSession.close();
+            mCaptureSession = null;
+        }
+        if (null != mCameraDevice) {
+            mCameraDevice.close();
+            mCameraDevice = null;
         }
     }
 
