@@ -389,17 +389,20 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     }
 
     @Override
-    public void onSensorChanged(final SensorEvent event) {
+    public void onSensorChanged(SensorEvent event) {
         //Log.d(TAG, "(thread " + android.os.Process.myTid() + ") processing a sensor event");
         switch (event.sensor.getType()) {
             case Sensor.TYPE_ACCELEROMETER:
             case Sensor.TYPE_ACCELEROMETER_UNCALIBRATED:
                 if (event.sensor.getType() == mAccSensor) {
                     mAccMonitor.onSample();
+                    // Event is reused, extract values we want
+                    final long time = event.timestamp;
+                    final float[] measurement = {event.values[0], event.values[1], event.values[2]};
                     mNativeHandler.post(new Runnable() {
                         @Override
                         public void run() {
-                            processAccSample(event.timestamp, event.values[0], event.values[1], event.values[2]);
+                            processAccSample(time, measurement[0], measurement[1], measurement[2]);
                         }
                     });
                 }
@@ -408,10 +411,13 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
             case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
                 if (event.sensor.getType() == mGyroSensor) {
                     mGyroMonitor.onSample();
+                    // Event is reused, extract values we want
+                    final long time = event.timestamp;
+                    final float[] measurement = {event.values[0], event.values[1], event.values[2]};
                     mNativeHandler.post(new Runnable() {
                         @Override
                         public void run() {
-                            processGyroSample(event.timestamp, event.values[0], event.values[1], event.values[2]);
+                            processGyroSample(time, measurement[0], measurement[1], measurement[2]);
                         }
                     });
                 }

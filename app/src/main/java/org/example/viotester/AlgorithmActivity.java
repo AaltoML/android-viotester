@@ -331,6 +331,11 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
     public void onDestroy() {
         super.onDestroy();
         mHandlerThread.quitSafely();
+        try {
+            mHandlerThread.join();
+        } catch (InterruptedException e) {
+            Log.e(TAG, "Failed to join native access handler thread", e);
+        }
         if (mDataRecorder != null) {
             mDataRecorder.flush();
             mDataRecorder = null;
