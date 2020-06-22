@@ -40,7 +40,7 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
     private CameraWorker mCameraWorker;
     private TextureView mDirectPreviewView;
     private DataRecorder mDataRecorder;
-    private AlgorithmWorker.Settings mAlgoWorkerSettings;
+    protected AlgorithmWorker.Settings mAlgoWorkerSettings;
     private final HandlerThread mHandlerThread;
     private final Handler mNativeHandler; // All native access should go through this
 
