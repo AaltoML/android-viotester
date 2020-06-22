@@ -1,18 +1,24 @@
 package org.example.viotester.arcore;
 
+import android.media.Image;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Size;
 
 import com.google.ar.core.ArCoreApk;
 import com.google.ar.core.Camera;
+import com.google.ar.core.CameraConfig;
+import com.google.ar.core.CameraConfigFilter;
+import com.google.ar.core.CameraIntrinsics;
 import com.google.ar.core.Frame;
 import com.google.ar.core.PointCloud;
 import com.google.ar.core.Session;
 import com.google.ar.core.TrackingState;
 
 import java.io.IOException;
+import java.util.List;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -38,6 +44,8 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
     private long mLastPointCloudTimestamp = 0;
     private float[] mPointCloudBuffer = null;
     private float[] mPointCloudOutBuffer = null;
+
+    private long frameNumber = 0;
 
     @Override
     public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
@@ -90,6 +98,15 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
             float[] projmtx = new float[16];
             camera.getProjectionMatrix(projmtx, 0, 0.1f, 100.0f);
 
+            // Send image to native code for recording
+            Image image = frame.acquireCameraImage();
+            CameraIntrinsics intrinsics = camera.getImageIntrinsics();
+            float focalLength = projmtx[0] * image.getWidth() / 2.f;
+            // intrinsics.getFocalLength()[0] is the same, but let's use same method as AREngine version
+            logExternalImage(image, frameNumber++, 0, focalLength,
+                    intrinsics.getPrincipalPoint()[0], intrinsics.getPrincipalPoint()[1]);
+            image.close(); // Release image, otherwise it's kept and we run out of memory
+
             // Get camera matrix and draw.
             float[] viewmtx = new float[16];
             camera.getViewMatrix(viewmtx, 0);
@@ -138,7 +155,6 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
     public void onCreate(Bundle savedInstanceState) {
         mRecordPrefix = "arcore";
         mNativeModule = "external";
-        mRecordCamera = false;
 
         super.onCreate(savedInstanceState);
 
@@ -177,6 +193,17 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
 
                 // Create the session.
                 mArCoreSession = new Session(/* context= */ this);
+            }
+
+            CameraConfigFilter filter = new CameraConfigFilter(mArCoreSession);
+            List<CameraConfig> cameraConfigList = mArCoreSession.getSupportedCameraConfigs(filter);
+            for (CameraConfig config : cameraConfigList) {
+                if (config.getImageSize().equals(mAlgoWorkerSettings.targetImageSize)) {
+                    Log.d(TAG, "Founding matching camera config for resolution "
+                            + config.getImageSize());
+                    mArCoreSession.setCameraConfig(config);
+                    break;
+                }
             }
 
             mArCoreSession.resume();

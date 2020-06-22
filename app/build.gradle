@@ -3,13 +3,13 @@ apply plugin: 'io.fabric'
 
 android {
     compileSdkVersion 29
-    buildToolsVersion "28.0.3"
+    buildToolsVersion "29.0.3"
     defaultConfig {
         applicationId "org.example.viotester"
         minSdkVersion 23
         targetSdkVersion 29
 
-        def hasCustomVio = new File("custom-vio").exists()
+        def hasCustomVio = new File("custom-vio/viotester-integration").isDirectory()
 
         buildConfigField "boolean", "USE_SLAM", "true"
         buildConfigField "boolean", "USE_CUSTOM_VIO", "${hasCustomVio}"
@@ -19,8 +19,8 @@ android {
                 arguments "-DANDROID_TOOLCHAIN=clang",
                         "-DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo",
                         "-DANDROID_STL=c++_static",
-                        "-DCMAKE_VERBOSE_MAKEFILE=ON"
-                        "-DUSE_CUSTOM_VIO=${hasCustomVio ? "ON" : "OFF"}"
+                        "-DCMAKE_VERBOSE_MAKEFILE=ON",
+                        "-DUSE_CUSTOM_VIO=${hasCustomVio ? 'ON' : 'OFF'}"
                 // speed up by compiling only for relevant architectures
                 abiFilters "arm64-v8a"
                 targets "vio_main"

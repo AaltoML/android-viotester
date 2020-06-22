@@ -1,5 +1,6 @@
 package org.example.viotester.arengine;
 
+import android.media.Image;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
@@ -8,6 +9,7 @@ import android.util.Log;
 import com.huawei.hiar.ARCamera;
 import com.huawei.hiar.AREnginesSelector;
 import com.huawei.hiar.ARFrame;
+import com.huawei.hiar.ARImageMetadata;
 import com.huawei.hiar.ARSession;
 import com.huawei.hiar.AREnginesApk;
 import com.huawei.hiar.ARTrackable;
@@ -24,7 +26,7 @@ import org.example.viotester.PermissionHelper;
 import org.example.viotester.ext_ar.Renderer;
 
 // See the comment in ARCoreActivity about the Gradle bug if you get weird errors
-// from building this clas
+// from building this class
 public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView.Renderer {
     private static final String TAG = AREngineActivity.class.getName();
 
@@ -37,6 +39,8 @@ public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView
     private ARPointCloud mARPointCloud = null;
     private float[] mPointCloudBuffer = null;
     private float[] mPointCloudOutBuffer = null;
+
+    private long frameNumber = 0;
 
     @Override
     public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
@@ -89,6 +93,15 @@ public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView
             float[] projmtx = new float[16];
             camera.getProjectionMatrix(projmtx, 0, 0.1f, 100.0f);
 
+            // Send image to native code for recording
+            Image image = frame.acquireCameraImage();
+            float focalLength = projmtx[0] * image.getWidth() / 2.f;
+            logExternalImage(image, frameNumber++, 0, focalLength, -1.f, -1.f);
+            // While ARCore requires this, AREngine works without. However, to ensure future
+            // compatibility, it feels safer to call it if AREngine gets more aligned with ARCore
+            // in the future.
+            image.close();
+
             // Get camera matrix and draw.
             float[] viewmtx = new float[16];
             camera.getViewMatrix(viewmtx, 0);
@@ -140,7 +153,6 @@ public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView
     public void onCreate(Bundle savedInstanceState) {
         mRecordPrefix = "arengine";
         mNativeModule = "external";
-        mRecordCamera = false;
 
         super.onCreate(savedInstanceState);
 

@@ -113,7 +113,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         public void onLocationChanged(final Location location) {
             final long t = SystemClock.elapsedRealtimeNanos();
             Log.d(TAG, "Location: " + location.getLatitude() + ", " + location.getLongitude() + " (accuracy " + location.getAccuracy() + "m)");
-            mHandler.post(new Runnable() {
+            mNativeHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     processGpsLocation(t, location.getLatitude(), location.getLongitude(), location.getAltitude(), location.getAccuracy());
@@ -139,8 +139,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
 
     private final SensorManager mSensorManager;
     private final List<Sensor> mSensors;
-    private final HandlerThread mHandlerThread;
-    private final Handler mHandler;
+    private final Handler mNativeHandler;
     private final Settings mSettings;
     private final Listener mListener;
     private final GpsListener mGpsListener;
@@ -163,14 +162,14 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
             SensorManager sensorManager,
             LocationManager locationManager,
             Settings settings,
-            Listener listener) {
+            Listener listener,
+            Handler handler) {
         mSensorManager = sensorManager;
 
-        mHandlerThread = new HandlerThread("AlgorithmWorker", Thread.MAX_PRIORITY);
-        mHandlerThread.start();
-        mHandler = new Handler(mHandlerThread.getLooper());
         mSettings = settings;
         mListener = listener;
+
+        mNativeHandler = handler;
 
         mSensors = new ArrayList<>();
         List<Integer> sensorTypes = new ArrayList<>();
@@ -228,7 +227,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         mInitialized = false;
         final int sensorDelay = SensorManager.SENSOR_DELAY_FASTEST;
         for (Sensor sensor : mSensors) {
-            mSensorManager.registerListener(this, sensor, sensorDelay, mHandler);
+            mSensorManager.registerListener(this, sensor, sensorDelay, mNativeHandler);
         }
         mAccMonitor.start();
         mGyroMonitor.start();
@@ -250,15 +249,6 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         mGpsListener.stop();
     }
 
-    public void destroy() {
-        mHandlerThread.quitSafely();
-        try {
-            mHandlerThread.join();
-        } catch (InterruptedException e) {
-            Log.e(TAG, "interrupted while stopping handler thread");
-        }
-    }
-
     @Override
     public void onCameraStart(CameraWorker.CameraParameters cameraParameters) {
         Log.d(TAG, "onCameraStart(" + cameraParameters + ")");
@@ -266,7 +256,8 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     }
 
     @Override
-    public void onImage(Image image, long frameNumber) {
+    public void onImage(Image image, long frameNumber, final int cameraInd,
+                        final float focalLength, final float px, final float py) {
         final long t = image.getTimestamp();
         mProcessedFpsMonitor.onSample();
 
@@ -278,22 +269,21 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         if (!mInitialized) {
             mInitialized = true;
 
-            float focalLength = -1;
+            mSettings.focalLength = -1;
             if (mCameraParameters != null) {
                 Log.i(TAG, "focal length from camera API: "+mCameraParameters.focalLength);
-                focalLength = mCameraParameters.focalLength;
+                mSettings.focalLength = mCameraParameters.focalLength;
                 mListener.onRelativeFocalLength(mCameraParameters.focalLength / width);
             }
             else if (mSettings.relativeFocalLength != null) {
                 Log.i(TAG, "relative focal length from settings: " + mSettings.relativeFocalLength);
-                focalLength = mSettings.relativeFocalLength * width;
+                mSettings.focalLength = mSettings.relativeFocalLength * width;
             } else {
                 Log.i(TAG, "default focal length");
             }
 
             mSettings.principalPointX = mCameraParameters == null ? -1 : mCameraParameters.principalPointX;
             mSettings.principalPointY = mCameraParameters == null ? -1 : mCameraParameters.principalPointY;
-            mSettings.focalLength = focalLength;
 
             mProcessColorFrames = configure(width, height, mSettings.moduleName, jsonSettings());
         }
@@ -334,14 +324,26 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
 
         boolean visualizationEnabled = mProcessColorFrames;
 
-        processFrame(t,
-                grayPlane.getRowStride(),
-                planes[1].getPixelStride(),
-                imageSize,
-                colorPlaneSize,
-                mCameraImageBuffer,
-                mProcessColorFrames,
-                mPoseData);
+        final int finalColorPlaneSize = colorPlaneSize;
+        final int rowStride = grayPlane.getRowStride(); // Store to var so image can be closed
+        final int pixelStride = planes[1].getPixelStride(); // Store to var so image can be closed
+        mNativeHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                processFrame(t,
+                        rowStride,
+                        pixelStride,
+                        imageSize,
+                        finalColorPlaneSize,
+                        mCameraImageBuffer,
+                        mProcessColorFrames,
+                        mPoseData,
+                        cameraInd,
+                        focalLength,
+                        px,
+                        py);
+            }
+        });
 
         if (visualizationEnabled) {
             drawVisualization();
@@ -383,7 +385,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
 
     @Override
     public Handler getHandler() {
-        return mHandler;
+        return mNativeHandler;
     }
 
     @Override
@@ -394,14 +396,30 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
             case Sensor.TYPE_ACCELEROMETER_UNCALIBRATED:
                 if (event.sensor.getType() == mAccSensor) {
                     mAccMonitor.onSample();
-                    processAccSample(event.timestamp, event.values[0], event.values[1], event.values[2]);
+                    // Event is reused, extract values we want
+                    final long time = event.timestamp;
+                    final float[] measurement = {event.values[0], event.values[1], event.values[2]};
+                    mNativeHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            processAccSample(time, measurement[0], measurement[1], measurement[2]);
+                        }
+                    });
                 }
                 break;
             case Sensor.TYPE_GYROSCOPE:
             case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
                 if (event.sensor.getType() == mGyroSensor) {
                     mGyroMonitor.onSample();
-                    processGyroSample(event.timestamp, event.values[0], event.values[1], event.values[2]);
+                    // Event is reused, extract values we want
+                    final long time = event.timestamp;
+                    final float[] measurement = {event.values[0], event.values[1], event.values[2]};
+                    mNativeHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            processGyroSample(time, measurement[0], measurement[1], measurement[2]);
+                        }
+                    });
                 }
                 break;
             default:
@@ -416,7 +434,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
 
     void logExternalPoseMatrix(final long timeNs, final float[] viewMtx, final String tag) {
         if (mSettings.recordPoses) {
-            mHandler.post(new Runnable() {
+            mNativeHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     recordPoseMatrix(timeNs, viewMtx, tag);
@@ -447,7 +465,8 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
             int rowStride, int chromaPixelStride, int grayImageSize, int chromaPlaneSize,
             byte[] yuvData,
             boolean hasColorData,
-            double[] outPoseData);
+            double[] outPoseData,
+            int cameraInd, float focalLength, float px, float py);
 
     public native void drawVisualization();
     public native void processGyroSample(long timeNanos, float x, float y, float z);
