@@ -9,6 +9,7 @@ public class TrackingActivity extends AlgorithmActivity {
     public void onCreate(Bundle savedInstanceState) {
         mRecordPrefix = "vio";
         mNativeModule = "tracking";
+        mUseCameraWorker = true;
         super.onCreate(savedInstanceState);
     }
 }
