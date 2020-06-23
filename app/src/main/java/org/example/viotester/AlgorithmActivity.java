@@ -52,6 +52,8 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
     // TODO: bad, refactor
     protected boolean mDataCollectionMode = false;
 
+    protected boolean mUseCameraWorker = false;
+
     public AlgorithmActivity() {
         mHandlerThread = new HandlerThread("NativeHandler", Thread.MAX_PRIORITY);
         mHandlerThread.start();
@@ -165,10 +167,14 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
         System.loadLibrary("vio_main");
 
         mAlgoWorkerSettings = parseSettings(prefs, getWindowManager().getDefaultDisplay());
+
         final boolean recordAny = mAlgoWorkerSettings.recordPoses || mAlgoWorkerSettings.recordSensors;
 
         if (recordAny) {
-            mDataRecorder = new DataRecorder(getExternalCacheDir(), mRecordPrefix);
+            mDataRecorder = new DataRecorder(
+                    getExternalCacheDir(),
+                    mRecordPrefix,
+                    prefs.getBoolean("compress_to_archive", true));
             mAlgoWorkerSettings.recordingFileName = mDataRecorder.getLogFileName();
         }
         if (mAlgoWorkerSettings.recordSensors) {
@@ -314,7 +320,7 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
         super.onResume();
         if (mGlSurfaceView != null) mGlSurfaceView.onResume();
 
-        if (mCameraWorker == null && mDataCollectionMode) {
+        if (mCameraWorker == null && (mDataCollectionMode || mUseCameraWorker)) {
             CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
             if (cameraManager == null) throw new RuntimeException("could not access CameraManager");
             mCameraWorker = new CameraWorker(

@@ -23,13 +23,16 @@ public class DataRecorder {
     private final String mVideoFileName;
     private final String mTarFileName;
     private final String mLogFileName;
+    private final boolean compress;
 
     static File getFolder(File cacheDir) {
         return new File(cacheDir, "recordings");
     }
 
-    public DataRecorder(File cacheDir, String prefix) {
+    public DataRecorder(File cacheDir, String prefix, boolean compress) {
         Log.d(TAG, "ctor");
+
+        this.compress = compress;
 
         final File rootFolder = getFolder(cacheDir);
 
@@ -61,10 +64,12 @@ public class DataRecorder {
 
     public void flush() {
         Log.d(TAG, "flush");
-        try {
-            writeTarball();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if (this.compress) {
+            try {
+                writeTarball();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

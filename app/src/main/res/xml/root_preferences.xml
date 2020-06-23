@@ -133,5 +133,11 @@
             app:summary="Like 'Record GPS', but uses Google's WiFi &amp; cellular locations. Enabling this helps debugging location data recording since these also work indoors. Also a good option if you want to all available location data and don't care where it's from."
             app:defaultValue="false">
         </SwitchPreference>
+        <SwitchPreference
+            app:key="compress_to_archive"
+            app:title="Compress to tar file"
+            app:summary="Compresses recorded data into a tar file. This can make the app unresponsive after long sessions."
+            app:defaultValue="true">
+        </SwitchPreference>
     </PreferenceCategory>
 </PreferenceScreen>
