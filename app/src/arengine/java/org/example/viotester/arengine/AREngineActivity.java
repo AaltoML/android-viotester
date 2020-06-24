@@ -214,6 +214,7 @@ public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView
                     }
 
                     mSession.configure(config);
+                    mSession.resume();
                 } else {
                     throw new RuntimeException("This device does not support Huawei AR Engine");
                 }
