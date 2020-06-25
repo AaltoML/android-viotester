@@ -192,8 +192,8 @@ public class CameraWorker {
                 mFpsMonitor.start();
                 try {
                     mCameraId = selectCamera(mCameraManager);
-                    logCameraParameters();
                     mCameraManager.openCamera(mCameraId, mStateCallback, mNativeHandler);
+                    logCameraParameters();
                     mFpsFilter.reset();
                 } catch (CameraAccessException e) {
                     throw new RuntimeException(e);
