@@ -89,11 +89,6 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
             // If frame is ready, render camera preview image to the GL surface.
             mBackgroundRenderer.draw(frame);
 
-            // If not tracking, don't draw 3D objects, show tracking failure reason instead.
-            if (camera.getTrackingState() == TrackingState.PAUSED) {
-                return;
-            }
-
             // Get projection matrix.
             float[] projmtx = new float[16];
             camera.getProjectionMatrix(projmtx, 0, 0.1f, 100.0f);
@@ -106,6 +101,11 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
             logExternalImage(image, frameNumber++, 0, focalLength,
                     intrinsics.getPrincipalPoint()[0], intrinsics.getPrincipalPoint()[1]);
             image.close(); // Release image, otherwise it's kept and we run out of memory
+
+            // If not tracking, don't draw 3D objects, show tracking failure reason instead.
+            if (camera.getTrackingState() == TrackingState.PAUSED) {
+                return;
+            }
 
             // Get camera matrix and draw.
             float[] viewmtx = new float[16];
