@@ -364,11 +364,11 @@ public class CameraWorker {
                         // When the session is ready, we start displaying the preview.
                         mCaptureSession = cameraCaptureSession;
                         try {
-                            CaptureRequest.Builder previewRequest = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+                            CaptureRequest.Builder previewRequest = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
                             for (Surface target : targets) {
                                 previewRequest.addTarget(target);
                             }
-                            previewRequest.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+                            previewRequest.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO);
                             mCaptureSession.setRepeatingRequest(previewRequest.build(), mCaptureCallback, mNativeHandler);
                         } catch (CameraAccessException e) {
                             throw new RuntimeException(e);
