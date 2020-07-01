@@ -84,11 +84,6 @@ public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView
             // If frame is ready, render camera preview image to the GL surface.
             mBackgroundRenderer.draw(frame);
 
-            // If not tracking, don't draw 3D objects, show tracking failure reason instead.
-            if (camera.getTrackingState() == ARTrackable.TrackingState.PAUSED) {
-                return;
-            }
-
             // Get projection matrix.
             float[] projmtx = new float[16];
             camera.getProjectionMatrix(projmtx, 0, 0.1f, 100.0f);
@@ -101,6 +96,11 @@ public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView
             // compatibility, it feels safer to call it if AREngine gets more aligned with ARCore
             // in the future.
             image.close();
+
+            // If not tracking, don't draw 3D objects, show tracking failure reason instead.
+            if (camera.getTrackingState() == ARTrackable.TrackingState.PAUSED) {
+                return;
+            }
 
             // Get camera matrix and draw.
             float[] viewmtx = new float[16];
