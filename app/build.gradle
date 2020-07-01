@@ -79,16 +79,25 @@ android {
         arengine {
             versionNameSuffix "-arengine"
             dependencies {
-                // Include a local Huawei AREngine library
-                implementation fileTree(include: ['*.aar'], dir: 'src/arengine/libs')
-
+                // AREngine from Huawei
+                implementation 'com.huawei.hms:arenginesdk:2.12.0.1'
+            }
+            repositories {
+                maven {
+                    url 'https://developer.huawei.com/repo/' // AREngine from Huawei
+                }
             }
         }
         arcoreandengine {
             versionNameSuffix "-arcore-arengine"
             dependencies {
-                implementation fileTree(include: ['*.aar'], dir: 'src/arengine/libs')
                 implementation 'com.google.ar:core:1.14.0'
+                implementation 'com.huawei.hms:arenginesdk:2.12.0.1'
+            }
+            repositories {
+                maven {
+                    url 'https://developer.huawei.com/repo/' // AREngine from Huawei
+                }
             }
         }
     }

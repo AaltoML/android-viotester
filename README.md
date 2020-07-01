@@ -61,10 +61,6 @@ Enabled by changing the build flavor to `arcore`.
 Enables comparison to Huawei AREngine. Enabled by changing the build flavor to `arengine`.
 Requirements:
  * Supported Huawei phone
- * Manual download of `HUAWEI AR Engine SDK_???.aar` to `app/src/arengine/libs/` (which is .gitignored).
-   Available from https://developer.huawei.com/consumer/en/ar after some registration steps. The
-   actual file is located inside the sample code folder in multiple copies, e.g.,
-   `./AREnginesdk-sample-2.0.0.6/AREnginesdk-sample-2.0.0.6/java/JavaSample/WorldAR_Java/libs/HUAWEI AR Engine SDK_v2.0.0.aar`.
 
 ## Copyright
 
