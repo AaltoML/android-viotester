@@ -16,6 +16,7 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import androidx.annotation.NonNull;
@@ -28,6 +29,13 @@ import android.view.TextureView;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
+
+import static android.hardware.camera2.CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL;
+import static android.hardware.camera2.CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES;
+import static android.hardware.camera2.CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE;
+import static android.hardware.camera2.CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE;
+import static android.hardware.camera2.CameraMetadata.REQUEST_AVAILABLE_CAPABILITIES_MOTION_TRACKING;
 
 public class CameraWorker {
     private static final String TAG = CameraWorker.class.getName();
@@ -364,11 +372,38 @@ public class CameraWorker {
                         // When the session is ready, we start displaying the preview.
                         mCaptureSession = cameraCaptureSession;
                         try {
+                            CameraCharacteristics characteristics = mCameraManager.getCameraCharacteristics(mCameraId);
+                            int[] capabilities = characteristics.get(REQUEST_AVAILABLE_CAPABILITIES);
                             CaptureRequest.Builder previewRequest = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
                             for (Surface target : targets) {
                                 previewRequest.addTarget(target);
                             }
+
+                            // <https://developer.android.com/reference/android/hardware/camera2/CaptureRequest>
+                            // Default values for TEMPLATE_RECORD based on experimentation with two devices:
+                            // CONTROL_AF_MODE = CONTROL_AF_MODE_CONTINUOUS_VIDEO (AF means auto-focus)
+                            // CONTROL_CAPTURE_INTENT = CONTROL_CAPTURE_INTENT_VIDEO_RECORD
+                            // NOISE_REDUCTION_MODE = FAST
+                            // EDGE_MODE = FAST
+                            // CONTROL_VIDEO_STABILIZATION_MODE = OFF (strong effect when ON)
+                            // LENS_OPTICAL_STABILIZATION_MODE = ON or OFF depending on LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION
                             previewRequest.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO);
+
+                            if (capabilities != null && contains(capabilities, REQUEST_AVAILABLE_CAPABILITIES_MOTION_TRACKING) &&
+                                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                                previewRequest.set(CaptureRequest.CONTROL_CAPTURE_INTENT, CaptureRequest.CONTROL_CAPTURE_INTENT_MOTION_TRACKING);
+                            }
+//                            else {
+//                                previewRequest.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_OFF);
+//                                previewRequest.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
+//                                previewRequest.set(CaptureRequest.CONTROL_CAPTURE_INTENT, CaptureRequest.CONTROL_CAPTURE_INTENT_MANUAL);
+//
+//                                previewRequest.set(CaptureRequest.SENSOR_EXPOSURE_TIME, 2_000_000L);
+//                                previewRequest.set(CaptureRequest.SENSOR_SENSITIVITY, 500); // 3500
+//                                //Log.d(TAG, "exposure range " + characteristics.get(SENSOR_INFO_EXPOSURE_TIME_RANGE) + ", value " + previewRequest.get(CaptureRequest.SENSOR_EXPOSURE_TIME));
+//                                //Log.d(TAG, "sensitivity range " + characteristics.get(SENSOR_INFO_SENSITIVITY_RANGE) + ", value " + previewRequest.get(CaptureRequest.SENSOR_SENSITIVITY));
+//                            }
+
                             mCaptureSession.setRepeatingRequest(previewRequest.build(), mCaptureCallback, mNativeHandler);
                         } catch (CameraAccessException e) {
                             throw new RuntimeException(e);
@@ -496,5 +531,12 @@ public class CameraWorker {
         matrix.postScale(scale, scale, centerX, centerY);
         matrix.postRotate(-90 , centerX, centerY);
         textureView.setTransform(matrix);
+    }
+
+    private static boolean contains(int[] array, int value) {
+        for (int v : array) {
+            if (value == v) return true;
+        }
+        return false;
     }
 }
