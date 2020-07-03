@@ -50,8 +50,6 @@ public class CameraWorker {
     private long mFrameNumber;
     private Size mDataSize;
 
-    private final FpsFilter mFpsFilter;
-
     public static class CameraParameters {
         int width;
         int height;
@@ -89,7 +87,6 @@ public class CameraWorker {
 
         mListener = listener;
         mNativeHandler = handler;
-        mFpsFilter = new FpsFilter(listener.getTargetFps());
 
         mFpsMonitor = new FrequencyMonitor(new FrequencyMonitor.Listener() {
             @Override
@@ -194,7 +191,6 @@ public class CameraWorker {
                     mCameraId = selectCamera(mCameraManager);
                     logCameraParameters();
                     mCameraManager.openCamera(mCameraId, mStateCallback, mNativeHandler);
-                    mFpsFilter.reset();
                 } catch (CameraAccessException e) {
                     throw new RuntimeException(e);
                 } catch (SecurityException e) {
@@ -336,13 +332,7 @@ public class CameraWorker {
                 if (image == null) return;
 
                 final long tNanos = image.getTimestamp();
-                mFpsFilter.setTime(tNanos);
-                if (mFpsFilter.poll()) {
-                    mListener.onImage(image, mFrameNumber, 0, -1.f, -1.f, -1.f);
-                }
-                if (mFpsFilter.pollAll()) {
-                    Log.v(TAG,"frame(s) skipped");
-                }
+                mListener.onImage(image, mFrameNumber, 0, -1.f, -1.f, -1.f);
                 image.close();
                 mFrameNumber++;
             }
