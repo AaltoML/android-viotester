@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.util.Size;
 
+import androidx.preference.PreferenceManager;
+
 import com.google.ar.core.ArCoreApk;
 import com.google.ar.core.Camera;
 import com.google.ar.core.CameraConfig;
@@ -19,6 +21,8 @@ import com.google.ar.core.TrackingState;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -197,14 +201,20 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
 
             CameraConfigFilter filter = new CameraConfigFilter(mArCoreSession);
             List<CameraConfig> cameraConfigList = mArCoreSession.getSupportedCameraConfigs(filter);
+            Set<String> resolutionSet = new TreeSet<>();
             for (CameraConfig config : cameraConfigList) {
-                if (config.getImageSize().equals(mAlgoWorkerSettings.targetImageSize)) {
+                Size s = config.getImageSize();
+                if (s.equals(mAlgoWorkerSettings.targetImageSize)) {
                     Log.d(TAG, "Founding matching camera config for resolution "
                             + config.getImageSize());
                     mArCoreSession.setCameraConfig(config);
-                    break;
                 }
+                resolutionSet.add(s.getWidth() + "x" + s.getHeight());
             }
+            PreferenceManager.getDefaultSharedPreferences(this )
+                    .edit()
+                    .putStringSet("resolution_set", resolutionSet)
+                    .apply();
 
             mArCoreSession.resume();
 
