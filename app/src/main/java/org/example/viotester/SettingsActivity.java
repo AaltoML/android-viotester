@@ -20,6 +20,7 @@ import androidx.preference.PreferenceManager;
 
 public class SettingsActivity extends AppCompatActivity {
     static private final String DEFAULT_RESO = "640x480";
+    static private final String DEFAULT_FPS = "30";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +32,7 @@ public class SettingsActivity extends AppCompatActivity {
                 .replace(R.id.settings, new SettingsFragment(
                         prefs.getStringSet("camera_set", new TreeSet<String>()),
                         prefs.getStringSet("resolution_set", new TreeSet<String>()),
+                        prefs.getStringSet("fps_set", new TreeSet<String>()),
                         prefs.getBoolean("has_auto_focal_length", false),
                         prefs.getBoolean(AssetCopier.HAS_SLAM_FILES_KEY, false) && BuildConfig.USE_SLAM
                 ))
@@ -51,14 +53,16 @@ public class SettingsActivity extends AppCompatActivity {
     public static class SettingsFragment extends PreferenceFragmentCompat {
         private final Set<String> mCameraSet;
         private final Set<String> mResolutionSet;
+        private final Set<String> mFpsSet;
         private final boolean mHasAutoFocalLength;
         private final boolean mSlamPossible;
 
-        SettingsFragment(Set<String> cameraSet, Set<String> resolutionSet, boolean hasAutoFocalLength, boolean slamPossible) {
+        SettingsFragment(Set<String> cameraSet, Set<String> resolutionSet, Set<String> fpsSet, boolean hasAutoFocalLength, boolean slamPossible) {
             mCameraSet = cameraSet;
             mResolutionSet = resolutionSet;
             mHasAutoFocalLength = hasAutoFocalLength;
             mSlamPossible = slamPossible;
+            mFpsSet = fpsSet;
         }
 
         @Override
@@ -66,6 +70,7 @@ public class SettingsActivity extends AppCompatActivity {
             setPreferencesFromResource(R.xml.root_preferences, rootKey);
             populateCameras();
             populateResolutions();
+            populateFps();
             populateVideoVisualizations();
             populateOverlayVisualizations();
             setFocalLength();
@@ -129,6 +134,35 @@ public class SettingsActivity extends AppCompatActivity {
                 }
             }
 
+            resolutionListPref.setEntries(entries);
+            resolutionListPref.setEntryValues(entryValues);
+            resolutionListPref.setDefaultValue(DEFAULT_RESO);
+        }
+
+        private void populateFps() {
+            // Get the Preference Category which we want to add the ListPreference to
+            ListPreference resolutionListPref = findPreference("fps");
+            ArrayList<String> fps = new ArrayList<>();
+            final CharSequence[] entries, entryValues;
+            if (mFpsSet.isEmpty()) {
+                entries = new CharSequence[]{"open tracking view to populate!"};
+                entryValues = new CharSequence[]{ DEFAULT_FPS };
+            } else {
+                fps.addAll(mFpsSet);
+                Collections.sort(fps, new Comparator<String>() {
+                    @Override
+                    public int compare(String r1, String r2) {
+                        return Integer.compare(Integer.parseInt(r1), Integer.parseInt(r2));
+                    }
+                });
+                entries = new CharSequence[fps.size()];
+                entryValues = new CharSequence[fps.size()];
+
+                for (int i = 0; i < fps.size(); ++i) {
+                    entries[i] = fps.get(i);
+                    entryValues[i] = fps.get(i);
+                }
+            }
             resolutionListPref.setEntries(entries);
             resolutionListPref.setEntryValues(entryValues);
             resolutionListPref.setDefaultValue(DEFAULT_RESO);

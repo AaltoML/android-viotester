@@ -20,6 +20,7 @@ import com.google.ar.core.Session;
 import com.google.ar.core.TrackingState;
 
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -200,8 +201,14 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
             }
 
             CameraConfigFilter filter = new CameraConfigFilter(mArCoreSession);
+            if (mAlgoWorkerSettings.targetFps == 30) {
+                filter.setTargetFps(EnumSet.of(CameraConfig.TargetFps.TARGET_FPS_30));
+            } else if (mAlgoWorkerSettings.targetFps == 60) {
+                filter.setTargetFps(EnumSet.of(CameraConfig.TargetFps.TARGET_FPS_60));
+            }
             List<CameraConfig> cameraConfigList = mArCoreSession.getSupportedCameraConfigs(filter);
             Set<String> resolutionSet = new TreeSet<>();
+            Set<String> fpsSet = new TreeSet<>();
             for (CameraConfig config : cameraConfigList) {
                 Size s = config.getImageSize();
                 if (s.equals(mAlgoWorkerSettings.targetImageSize)) {
@@ -210,10 +217,15 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
                     mArCoreSession.setCameraConfig(config);
                 }
                 resolutionSet.add(s.getWidth() + "x" + s.getHeight());
+                fpsSet.add(Integer.toString(config.getFpsRange().getLower()));
             }
             PreferenceManager.getDefaultSharedPreferences(this )
                     .edit()
                     .putStringSet("resolution_set", resolutionSet)
+                    .apply();
+            PreferenceManager.getDefaultSharedPreferences(this )
+                    .edit()
+                    .putStringSet("fps_set", fpsSet)
                     .apply();
 
             mArCoreSession.resume();

@@ -36,8 +36,8 @@
 
         <ListPreference
             app:defaultValue="30"
-            app:entries="@array/fps"
-            app:entryValues="@array/fps"
+            app:entries="@array/placeholders"
+            app:entryValues="@array/placeholders"
             app:key="fps"
             app:title="FPS"
             app:useSimpleSummaryProvider="true" />
