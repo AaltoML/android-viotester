@@ -17,6 +17,7 @@ import android.util.Size;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import androidx.annotation.Nullable;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -27,6 +28,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     public interface Listener {
         void onStats(String stats);
         void onAvailableSizes(Size[] sizes);
+        void onAvailableFps(Set<Integer> fps);
         void onAvailableCameras(List<String> cameras);
         void onRelativeFocalLength(double relativeFocalLength);
     }
@@ -363,9 +365,13 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     }
 
     @Override
-    public double getTargetFps() {
-        if (mSettings.recordingOnly) return 1e6; // no frame rate limit when recording
+    public int getTargetFps() {
         return mSettings.targetFps;
+    }
+
+    @Override
+    public void setAvailableFps(Set<Integer> fps) {
+        mListener.onAvailableFps(fps);
     }
 
     @Override

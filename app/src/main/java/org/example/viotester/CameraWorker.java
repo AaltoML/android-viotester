@@ -21,6 +21,7 @@ import android.os.HandlerThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import android.util.Log;
+import android.util.Range;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
@@ -28,6 +29,8 @@ import android.view.TextureView;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class CameraWorker {
     private static final String TAG = CameraWorker.class.getName();
@@ -49,8 +52,6 @@ public class CameraWorker {
     private boolean mKilled;
     private long mFrameNumber;
     private Size mDataSize;
-
-    private final FpsFilter mFpsFilter;
 
     public static class CameraParameters {
         int width;
@@ -78,7 +79,8 @@ public class CameraWorker {
         String chooseCamera(List<String> cameras);
         void onCameraStart(CameraParameters cameraParameters);
         void onImage(Image image, long frameNumber, int cameraInd, float focalLength, float px, float py);
-        double getTargetFps();
+        int getTargetFps();
+        void setAvailableFps(Set<Integer> fps);
         Handler getHandler();
     }
 
@@ -89,7 +91,6 @@ public class CameraWorker {
 
         mListener = listener;
         mNativeHandler = handler;
-        mFpsFilter = new FpsFilter(listener.getTargetFps());
 
         mFpsMonitor = new FrequencyMonitor(new FrequencyMonitor.Listener() {
             @Override
@@ -194,7 +195,6 @@ public class CameraWorker {
                     mCameraId = selectCamera(mCameraManager);
                     logCameraParameters();
                     mCameraManager.openCamera(mCameraId, mStateCallback, mNativeHandler);
-                    mFpsFilter.reset();
                 } catch (CameraAccessException e) {
                     throw new RuntimeException(e);
                 } catch (SecurityException e) {
@@ -302,6 +302,21 @@ public class CameraWorker {
         final List<Surface> targets = new ArrayList<>();
         Log.d(TAG, "createCameraPreviewSession");
 
+        Range<Integer>[] fpsRanges = mCameraManager.getCameraCharacteristics(mCameraId).get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
+        Range<Integer> tempFps = null;
+        Set<Integer> availableFps = new TreeSet<Integer>();
+        int targetFps = mListener.getTargetFps();
+        for (Range<Integer> r : fpsRanges) {
+            if (targetFps == r.getLower() && targetFps == r.getUpper()) {
+                tempFps = r;
+            }
+            if (r.getLower() == r.getUpper()) {
+                availableFps.add(r.getLower());
+            }
+        }
+        mListener.setAvailableFps(availableFps);
+        final Range<Integer> selectedFps = tempFps;
+
         mDataSize = selectBestCameraSize(mListener, ImageReader.class);
 
         if (mTextureView != null) {
@@ -336,13 +351,7 @@ public class CameraWorker {
                 if (image == null) return;
 
                 final long tNanos = image.getTimestamp();
-                mFpsFilter.setTime(tNanos);
-                if (mFpsFilter.poll()) {
-                    mListener.onImage(image, mFrameNumber, 0, -1.f, -1.f, -1.f);
-                }
-                if (mFpsFilter.pollAll()) {
-                    Log.v(TAG,"frame(s) skipped");
-                }
+                mListener.onImage(image, mFrameNumber, 0, -1.f, -1.f, -1.f);
                 image.close();
                 mFrameNumber++;
             }
@@ -371,6 +380,9 @@ public class CameraWorker {
                             previewRequest.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO);
                             previewRequest.set(CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE, CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF);
                             previewRequest.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF);
+                            if (selectedFps != null) {
+                                previewRequest.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, selectedFps);
+                            }
                             mCaptureSession.setRepeatingRequest(previewRequest.build(), mCaptureCallback, mNativeHandler);
                         } catch (CameraAccessException e) {
                             throw new RuntimeException(e);
