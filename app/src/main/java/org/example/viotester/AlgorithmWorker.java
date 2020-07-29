@@ -181,7 +181,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
                 Sensor.TYPE_GYROSCOPE_UNCALIBRATED;
         mAccSensor = mSettings.useCalibAcc ?
                 Sensor.TYPE_ACCELEROMETER :
-                Sensor.TYPE_GYROSCOPE_UNCALIBRATED;
+                Sensor.TYPE_ACCELEROMETER_UNCALIBRATED; // TODO: Requires API level 26
 
         if (false) { // mSettings.recordExtraSensors
             // TODO: record these extra sensors too
