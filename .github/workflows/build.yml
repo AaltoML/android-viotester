@@ -7,6 +7,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Use dummy google-services.json
+      run: cp app/dummy-google-services.json app/google-services.json
     - name: Install Android NDK
       run: echo "y" | sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install 'ndk;21.0.6113669' --sdk_root=${ANDROID_SDK_ROOT} > /dev/null 2>&1
     - name: "Build Android project (ARCore variant)"

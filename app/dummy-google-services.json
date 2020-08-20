@@ -1,0 +1,14 @@
+{
+  "project_info": {},
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "dummy",
+        "android_client_info": {
+          "package_name": "org.example.viotester"
+        }
+      },
+    }
+  ],
+  "configuration_version": "1"
+}
