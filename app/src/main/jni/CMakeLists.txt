@@ -13,7 +13,17 @@ set(target vio_main)
 project(${target} CXX)
 
 set(ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../..")
-set(mobile-cv-suite_DIR "${ROOT_DIR}/mobile-cv-suite")
+
+set(MCS_VERSION 1.0.0)
+set(MCS_TARGET_DIR ${ROOT_DIR}/app/.cxx/mobile-cv-suite-${MCS_VERSION})
+if(NOT EXISTS ${MCS_TARGET_DIR})
+    set(MCS_ARCHIVE_FN ${CMAKE_CURRENT_BINARY_DIR}/mobile-cv-suite.tar-${MCS_VERSION}.gz)
+    file(DOWNLOAD https://github.com/AaltoML/mobile-cv-suite/releases/download/${MCS_VERSION}/mobile-cv-suite.tar.gz ${MCS_ARCHIVE_FN} SHOW_PROGRESS)
+    file(MAKE_DIRECTORY ${MCS_TARGET_DIR})
+    execute_process(COMMAND ${CMAKE_COMMAND} -E tar -xf ${MCS_ARCHIVE_FN} WORKING_DIRECTORY ${MCS_TARGET_DIR})
+endif()
+set(mobile-cv-suite_DIR "${MCS_TARGET_DIR}")
+#find_package(mobile-cv-suite REQUIRED PATHS "${MCS_TARGET_DIR}")
 
 add_library(${target} SHARED
         algorithm_worker.cpp
