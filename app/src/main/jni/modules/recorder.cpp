@@ -25,7 +25,7 @@ struct RecordingModule : public AlgorithmModule {
                 recName.is_null() ? "" : recName.get<std::string>(),
                 (videoRecName.is_null() || !recordCamera) ? "" : videoRecName.get<std::string>());
 
-        recorder->setVideoRecordingFps(30); // TODO
+        recorder->setVideoRecordingFps(settings.at("targetFps").get<float>());
     }
 
     void addGyro(double t, const recorder::Vector3d &val) final {
