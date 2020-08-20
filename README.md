@@ -69,7 +69,7 @@ The files under `app/src/arcore` that say so at the top of the file,
 are Licensed under Apache 2 (&copy; Google). They have been copied from the ARCore SDK examples.
 To see how they have been modified from their original versions, see comments beginning with "NOTE".
 
-The depenency [mobile-cv-suite]() is a collection of libraries licensed under various OSS licenses,
-including LGPL. See the repository for more details.
-
 The original code in this repository is also licensed under Apache 2.0.
+
+The depenency [mobile-cv-suite](https://github.com/AaltoML/mobile-cv-suite)
+is a collection of libraries licensed under various OSS licenses, including LGPL. See the repository for more details.
