@@ -1,0 +1,13 @@
+name: Build and run unit tests
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: "Build Android project (ARCore variant)"
+      uses: vgaidarji/android-github-actions-build@v1.0.1
+      with:
+        args: "./gradlew assembleArcoreDebug"
