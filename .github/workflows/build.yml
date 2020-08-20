@@ -7,6 +7,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Install Android NDK
+      run: echo "y" | sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install 'ndk;21.0.6113669' > /dev/null 2>&1
     - name: "Build Android project (ARCore variant)"
       uses: vgaidarji/android-github-actions-build@v1.0.1
       with:
