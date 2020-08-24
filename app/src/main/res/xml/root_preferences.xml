@@ -66,6 +66,11 @@
             app:defaultValue="false" />
 
         <SwitchPreference
+            app:key="half_fps"
+            app:title="Half FPS mode"
+            app:defaultValue="false" />
+
+        <SwitchPreference
             app:key="use_calib_acc"
             app:title="Use calibrated acc"
             app:dependency="enable_odometry"

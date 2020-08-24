@@ -257,7 +257,10 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
         }
 
         s.targetCamera = prefs.getString("target_camera", "0");
+
+        s.halfFps = prefs.getBoolean("half_fps", false);
         s.targetFps = Integer.parseInt(prefs.getString("fps", "15"));
+        if (s.halfFps) s.targetFps /= 2;
 
         Size def = new Size(1280,720);
         String sizeString = prefs.getString("target_size", def.getWidth() + "x" + def.getHeight());
@@ -339,7 +342,8 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
                     cameraManager,
                     mDirectPreviewView,
                     mAlgorithmWorker,
-                    mNativeHandler);
+                    mNativeHandler,
+                    mAlgoWorkerSettings.halfFps);
 
         }
         mAlgorithmWorker.start(); // after System.loadLibrary

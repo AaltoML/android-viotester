@@ -51,7 +51,9 @@ public class CameraWorker {
     private String mCameraId;
     private boolean mKilled;
     private long mFrameNumber;
+    private long onImageCalls = 0;
     private Size mDataSize;
+    private boolean mHalfFps;
 
     public static class CameraParameters {
         int width;
@@ -84,13 +86,14 @@ public class CameraWorker {
         Handler getHandler();
     }
 
-    public CameraWorker(CameraManager manager, @Nullable TextureView view, Listener listener, Handler handler) {
+    public CameraWorker(CameraManager manager, @Nullable TextureView view, Listener listener, Handler handler, boolean halfFps) {
         Log.d(TAG, "ctor");
         mCameraManager = manager;
         mTextureView = view;
 
         mListener = listener;
         mNativeHandler = handler;
+        mHalfFps = halfFps;
 
         mFpsMonitor = new FrequencyMonitor(new FrequencyMonitor.Listener() {
             @Override
@@ -305,7 +308,11 @@ public class CameraWorker {
         Range<Integer>[] fpsRanges = mCameraManager.getCameraCharacteristics(mCameraId).get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
         Range<Integer> tempFps = null;
         Set<Integer> availableFps = new TreeSet<Integer>();
+
         int targetFps = mListener.getTargetFps();
+        // In half FPS mode, targetFps is halved, but halving mechanic for CameraWorker is just to
+        // skip half of the actual frames, we must return targetFps to it's original value
+        if (mHalfFps) targetFps *= 2;
         for (Range<Integer> r : fpsRanges) {
             if (targetFps == r.getLower() && targetFps == r.getUpper()) {
                 tempFps = r;
@@ -347,6 +354,8 @@ public class CameraWorker {
             @Override
             public void onImageAvailable(ImageReader imageReader) {
                 //Log.v(TAG, "onImageAvailable");
+                if (mHalfFps && onImageCalls++ % 2 == 1) return;
+
                 final Image image = imageReader.acquireLatestImage();
                 if (image == null) return;
 

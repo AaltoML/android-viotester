@@ -62,6 +62,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         public Size targetImageSize;
         public String targetCamera;
         public Float relativeFocalLength;
+        public boolean halfFps;
         public boolean useCalibAcc;
         public boolean useCalibGyro;
         public boolean fastMode;
