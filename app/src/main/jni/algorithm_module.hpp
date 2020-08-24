@@ -43,6 +43,7 @@ public:
      */
     virtual bool render(cv::Mat &outMat) { return false; }
     virtual std::string status() const { return ""; }
+    virtual int trackingStatus() { return -1; };
 
     virtual ~AlgorithmModule() = default;
 

@@ -186,9 +186,15 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
                 (LocationManager) getSystemService(android.content.Context.LOCATION_SERVICE),
                 mAlgoWorkerSettings, new AlgorithmWorker.Listener() {
             @Override
-            public void onStats(String stats) {
-                if (showDebugText)
+            public void onStats(String stats, int trackingStatus) {
+                if (showDebugText) {
                     mVisuUpdater.setAlgoStatsText(stats);
+                } else  {
+                    if (trackingStatus == 2) // 2 Lost tracking
+                        mVisuUpdater.setAlgoStatsText("Lost tracking");
+                    else // 0 Init, 1 Tracking
+                        mVisuUpdater.setAlgoStatsText("");
+                }
             }
 
             @Override

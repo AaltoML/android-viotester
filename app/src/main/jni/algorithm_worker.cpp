@@ -201,6 +201,12 @@ JNIEXPORT jstring JNICALL Java_org_example_viotester_AlgorithmWorker_getStatsStr
     return nullptr;
 }
 
+JNIEXPORT jint JNICALL Java_org_example_viotester_AlgorithmWorker_getTrackingStatus(
+        JNIEnv *env, jobject) {
+    if (algorithm) return algorithm->trackingStatus();
+    return -1;
+}
+
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_drawVisualization(JNIEnv *, jobject) {
     if (!algorithm) return;
 
