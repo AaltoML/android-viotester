@@ -26,7 +26,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     private static final String TAG = AlgorithmWorker.class.getName();
 
     public interface Listener {
-        void onStats(String stats);
+        void onStats(String stats, int trackingStatus);
         void onAvailableSizes(Size[] sizes);
         void onAvailableFps(Set<Integer> fps);
         void onAvailableCameras(List<String> cameras);
@@ -62,6 +62,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         public Size targetImageSize;
         public String targetCamera;
         public Float relativeFocalLength;
+        public boolean halfFps;
         public boolean useCalibAcc;
         public boolean useCalibGyro;
         public boolean fastMode;
@@ -353,7 +354,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
 
         String statsString = getStatsString();
         statsString += String.format(" %.3g FPS", mProcessedFpsMonitor.getLatestFrequency());
-        mListener.onStats(statsString);
+        mListener.onStats(statsString, getTrackingStatus());
     }
 
     private String jsonSettings() {
@@ -480,4 +481,5 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     public native void processGpsLocation(long timeNanos, double latitude, double longutide, double altitude, float accuracy);
     public native void recordPoseMatrix(long timeNanos, float[] viewMatrix, String tag);
     public native String getStatsString();
+    public native int getTrackingStatus();
 }
