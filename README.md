@@ -36,7 +36,13 @@ Approximates camera parameters using OpenCV on phones whose Camera 2 API does pr
  2. Move camera so that the pattern is viewed from different angles and at different locations on the screen (center & edges)
  3. The camera parameters at the current resolution are printed on screen (TODO: share to Slack etc.)
 
-## Linux/Mac setup
+## Build
+
+First, if you do not have a `google-services.json` (Firebase account), use the provided dummy one
+
+    cp app/dummy-google-services.json app/google-services.json
+
+### Linux/Mac setup
 
 On Debian Stretch, these packages needed to be installed with apt-get
 
@@ -44,19 +50,14 @@ On Debian Stretch, these packages needed to be installed with apt-get
  * ccache
  * openjdk-8-jdk
 
-Also an Android SDK and Android NDK need to be installed.
+Also an Android SDK and Android NDK need to be installed. The project can be run in Android Studio.
 
-1. Because of the submodules, clone this repo with the `--recursive` Git option (this may take a while)
-2. `cd mobile-cv-suite`
-3. Run `./scripts/android/build.sh`
-4. Then open the project in Android Studio and run app.
-
-# ARCore test mode
+### ARCore test mode
 
 Can be used to compare other methods to Google ARCore.
 Enabled by changing the build flavor to `arcore`.
 
-# AREngine test mode
+### AREngine test mode
 
 Enables comparison to Huawei AREngine. Enabled by changing the build flavor to `arengine`.
 Requirements:
@@ -69,3 +70,6 @@ are Licensed under Apache 2 (&copy; Google). They have been copied from the ARCo
 To see how they have been modified from their original versions, see comments beginning with "NOTE".
 
 The original code in this repository is also licensed under Apache 2.0.
+
+The depenency [mobile-cv-suite](https://github.com/AaltoML/mobile-cv-suite)
+is a collection of libraries licensed under various OSS licenses, including LGPL. See the repository for more details.
