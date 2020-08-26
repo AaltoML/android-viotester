@@ -220,6 +220,7 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_drawVisualizat
         outputBufferIndex = (outputBufferIndex + 1) % 2; // double-buffer flip
     }
 }
+
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processGpsLocation(JNIEnv *, jobject, jlong timeNanos, jdouble lat, jdouble lon, jdouble alt, jfloat acc) {
     if (!algorithm) return;
     algorithm->addGps(doubleClock.update(timeNanos), AlgorithmModule::Gps {
@@ -228,6 +229,19 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processGpsLoca
             .altitude = alt,
             .accuracy = acc
     });
+}
+
+JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_writeInfoFile(
+        JNIEnv* env, jobject,
+        jstring mode, jstring device) {
+    if (algorithm)
+        algorithm->writeInfoFile(getStringOrEmpty(env, mode), getStringOrEmpty(env, device));
+}
+
+JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_writeParamsFile(
+        JNIEnv*, jobject,
+        jfloat focalLength) {
+    if (algorithm) algorithm->writeParamsFile(focalLength);
 }
 
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_recordPoseMatrix(JNIEnv *env, jobject thiz, jlong timeNs, jfloatArray pose, jstring tag) {

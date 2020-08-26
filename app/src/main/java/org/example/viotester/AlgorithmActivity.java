@@ -176,6 +176,8 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
                     mRecordPrefix,
                     prefs.getBoolean("compress_to_archive", true));
             mAlgoWorkerSettings.recordingFileName = mDataRecorder.getLogFileName();
+            mAlgoWorkerSettings.infoFileName = mDataRecorder.getInfoFileName();
+            mAlgoWorkerSettings.parametersFileName = mDataRecorder.getParametersFileName();
         }
         if (mAlgoWorkerSettings.recordSensors) {
             mAlgoWorkerSettings.videoRecordingFileName = mDataRecorder.getVideoFileName();
@@ -237,7 +239,7 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
                         .putBoolean("has_auto_focal_length", true)
                         .apply();
             }
-        }, mNativeHandler);
+        }, mNativeHandler, mRecordPrefix);
     }
 
     private AlgorithmWorker.Settings parseSettings(

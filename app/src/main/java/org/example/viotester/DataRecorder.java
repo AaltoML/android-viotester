@@ -23,6 +23,8 @@ public class DataRecorder {
     private final String mVideoFileName;
     private final String mTarFileName;
     private final String mLogFileName;
+    private final String mInfoFileName;
+    private final String mParametersFileName;
     private final boolean compress;
 
     static File getFolder(File cacheDir) {
@@ -49,6 +51,8 @@ public class DataRecorder {
         }
         mVideoFileName = new File(mFolder, "data.avi").getAbsolutePath();
         mLogFileName = new File(mFolder, "data.jsonl").getAbsolutePath();
+        mInfoFileName = new File(mFolder, "info.json").getAbsolutePath();
+        mParametersFileName = new File(mFolder, "parameters.txt").getAbsolutePath();
         mTarFileName = new File(rootFolder, name + ".tar").getAbsolutePath();
 
         Log.i(TAG,"video file " + mVideoFileName);
@@ -61,6 +65,8 @@ public class DataRecorder {
     public String getLogFileName() {
         return mLogFileName;
     }
+    public String getInfoFileName() { return mInfoFileName; }
+    public String getParametersFileName() { return mParametersFileName; }
 
     public void flush() {
         Log.d(TAG, "flush");

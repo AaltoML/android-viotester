@@ -8,6 +8,7 @@ public class DataCollectionActivity extends AlgorithmActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         mDataCollectionMode = true;
+        mRecordPrefix = "camera2";
         mNativeModule = "recording";
         super.onCreate(savedInstanceState);
     }

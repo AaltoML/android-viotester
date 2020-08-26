@@ -45,6 +45,9 @@ public:
     virtual std::string status() const { return ""; }
     virtual int trackingStatus() { return -1; };
 
+    virtual void writeInfoFile(const std::string &mode, const std::string &device) {};
+    virtual void writeParamsFile(float focalLength) {};
+
     virtual ~AlgorithmModule() = default;
 
     static std::unique_ptr<AlgorithmModule> build(int width, int height, const std::string &name, const json *settings = nullptr);
