@@ -28,41 +28,6 @@ struct RecordingModule : public AlgorithmModule {
                 (videoRecName.is_null() || !recordCamera) ? "" : videoRecName.get<std::string>());
 
         recorder->setVideoRecordingFps(settings.at("targetFps").get<float>());
-
-        infoFile = !settings.at("infoFileName").is_null() ? settings.at("infoFileName") : "";
-        paramsFile = !settings.at("parametersFileName").is_null() ? settings.at("parametersFileName") : "";
-    }
-    
-    void writeInfoFile(const std::string &mode, const std::string &device) {
-        // TODO: Move implementation to recorder?
-        if (infoFile.empty())
-            return;
-        json infoJson = R"(
-            {
-                "camera mode": "",
-                "device": "",
-                "tags": [
-                    "android"
-                ]
-            }
-        )"_json;
-        infoJson["camera mode"] = mode;
-        infoJson["device"] = device;
-        std::ofstream fileOutput(infoFile);
-        std::ostream &output(fileOutput);
-        output << infoJson.dump() << std::endl;
-    }
-
-    void writeParamsFile(float focalLength) {
-        // TODO: Move implementation to recorder?
-        if (paramsFile.empty())
-            return;
-        std::ofstream fileOutput(paramsFile);
-        std::ostream &output(fileOutput);
-        output << "imuToCameraMatrix -0,-1,0,-1,0,0,0,0,-1;focalLength "
-               << std::to_string(focalLength)
-               << ";"
-               << std::endl;
     }
 
     void addGyro(double t, const recorder::Vector3d &val) final {

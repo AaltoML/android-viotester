@@ -299,7 +299,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
             mProcessColorFrames = configure(width, height, mSettings.moduleName, jsonSettings());
 
             if (mSettings.parametersFileName != null) {
-                writeParamsFile(focalLength > 0. ? focalLength : mSettings.focalLength);
+                writeParamsFile();
             }
             if (mSettings.infoFileName != null) {
                 String device = Build.MANUFACTURER
@@ -502,5 +502,5 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     public native String getStatsString();
     public native int getTrackingStatus();
     public native void writeInfoFile(String mode, String device);
-    public native void writeParamsFile(float focalLength);
+    public native void writeParamsFile();
 }
