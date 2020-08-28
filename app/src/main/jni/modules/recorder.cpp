@@ -10,8 +10,6 @@ struct RecordingModule : public AlgorithmModule {
     std::unique_ptr<recorder::Recorder> recorder;
     int w, h;
     bool recordSensors = false;
-    std::string infoFile;
-    std::string paramsFile;
 
     RecordingModule(int width, int height, const json &settings) {
         w = width;
