@@ -8,6 +8,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.media.Image;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -81,6 +82,10 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         @Nullable
         public String recordingFileName;
         @Nullable
+        public String infoFileName;
+        @Nullable
+        public String parametersFileName;
+        @Nullable
         public String videoRecordingFileName;
 
         public boolean recordingOnly = false;
@@ -146,6 +151,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     private final Settings mSettings;
     private final Listener mListener;
     private final GpsListener mGpsListener;
+    private final String mMode;
 
     private final FrequencyMonitor mAccMonitor;
     private final FrequencyMonitor mGyroMonitor;
@@ -166,11 +172,13 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
             LocationManager locationManager,
             Settings settings,
             Listener listener,
-            Handler handler) {
+            Handler handler,
+            String mode) {
         mSensorManager = sensorManager;
 
         mSettings = settings;
         mListener = listener;
+        mMode = mode;
 
         mNativeHandler = handler;
 
@@ -289,6 +297,17 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
             mSettings.principalPointY = mCameraParameters == null ? -1 : mCameraParameters.principalPointY;
 
             mProcessColorFrames = configure(width, height, mSettings.moduleName, jsonSettings());
+
+            if (mSettings.parametersFileName != null) {
+                writeParamsFile();
+            }
+            if (mSettings.infoFileName != null) {
+                String device = Build.MANUFACTURER
+                        + " " + Build.MODEL
+                        + " " + Build.VERSION.RELEASE
+                        + " " + Build.VERSION_CODES.class.getFields()[android.os.Build.VERSION.SDK_INT].getName();
+                writeInfoFile(mMode, device);
+            }
         }
 
         final Image.Plane[] planes = image.getPlanes();
@@ -482,4 +501,6 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     public native void recordPoseMatrix(long timeNanos, float[] viewMatrix, String tag);
     public native String getStatsString();
     public native int getTrackingStatus();
+    public native void writeInfoFile(String mode, String device);
+    public native void writeParamsFile();
 }

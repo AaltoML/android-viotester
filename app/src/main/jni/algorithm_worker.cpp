@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 #include "opengl/algorithm_renderer.hpp"
 #include "algorithm_module.hpp"
+#include <fstream>
 
 using nlohmann::json;
 
@@ -17,6 +18,7 @@ namespace {
     std::vector<uint32_t> outputBuffers[2];
     int outputBufferIndex;
 
+    json settingsJson;
     std::unique_ptr<AlgorithmModule> algorithm;
     class Clock {
     public:
@@ -71,7 +73,6 @@ JNIEXPORT jboolean JNICALL Java_org_example_viotester_AlgorithmWorker_configure(
     {
         const std::string moduleName = getStringOrEmpty(env, moduleNameJava);
         log_info("initializing %s", moduleName.c_str());
-        json settingsJson;
         json *settingsJsonPtr = nullptr;
         const std::string settingsString = getStringOrEmpty(env, moduleSettingsJson);
         if (!settingsString.empty()) {
@@ -220,6 +221,7 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_drawVisualizat
         outputBufferIndex = (outputBufferIndex + 1) % 2; // double-buffer flip
     }
 }
+
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processGpsLocation(JNIEnv *, jobject, jlong timeNanos, jdouble lat, jdouble lon, jdouble alt, jfloat acc) {
     if (!algorithm) return;
     algorithm->addGps(doubleClock.update(timeNanos), AlgorithmModule::Gps {
@@ -228,6 +230,36 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processGpsLoca
             .altitude = alt,
             .accuracy = acc
     });
+}
+
+JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_writeInfoFile(
+        JNIEnv* env, jobject,
+        jstring mode, jstring device) {
+    std::string infoFile = !settingsJson.at("infoFileName").is_null() ? settingsJson.at("infoFileName") : "";
+    if (infoFile.empty())
+        return;
+    json infoJson = R"(
+            {
+                "camera mode": "",
+                "device": "",
+                "tags": [
+                    "android"
+                ]
+            }
+        )"_json;
+    infoJson["camera mode"] = getStringOrEmpty(env, mode);
+    infoJson["device"] = getStringOrEmpty(env, device);
+    std::ofstream fileOutput(infoFile);
+    fileOutput << infoJson.dump() << std::endl;
+}
+
+JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_writeParamsFile(
+        JNIEnv*, jobject) {
+    std::string paramsFile = !settingsJson.at("parametersFileName").is_null() ? settingsJson.at("parametersFileName") : "";
+    if (paramsFile.empty())
+        return;
+    std::ofstream fileOutput(paramsFile);
+    fileOutput << "imuToCameraMatrix -0,-1,0,-1,0,0,0,0,-1;" << std::endl;
 }
 
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_recordPoseMatrix(JNIEnv *env, jobject thiz, jlong timeNs, jfloatArray pose, jstring tag) {
