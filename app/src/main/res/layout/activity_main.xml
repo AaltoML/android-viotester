@@ -2,8 +2,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity"
-    android:background="#eeeeee">
+    tools:context=".MainActivity">
 
     <LinearLayout
         android:layout_gravity="center_horizontal"
@@ -73,7 +72,7 @@
             android:textSize="25sp"
             android:padding="30dp"
             android:layout_marginTop="20dp"
-            style="@style/Widget.AppCompat.Button.Borderless"/>
+            style="@style/TextButton"/>
 
         <Button
             android:id="@+id/btn_settings"
@@ -83,7 +82,7 @@
             android:textSize="25sp"
             android:padding="30dp"
             android:layout_marginTop="20dp"
-            style="@style/Widget.AppCompat.Button.Borderless"/>
+            style="@style/TextButton"/>
     </LinearLayout>
 
 </ScrollView>

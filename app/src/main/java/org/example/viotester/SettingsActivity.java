@@ -3,11 +3,16 @@ package org.example.viotester;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.Log;
+import android.view.View;
 import android.widget.EditText;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -15,6 +20,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.EditTextPreference;
 import androidx.preference.ListPreference;
+import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 
@@ -75,6 +81,27 @@ public class SettingsActivity extends AppCompatActivity {
             populateOverlayVisualizations();
             setFocalLength();
             findPreference("enable_slam").setEnabled(mSlamPossible);
+
+            if (BuildConfig.DEMO_MODE) {
+                enableDemoMode();
+            }
+        }
+
+        String[] DEMO_MODE_SETTINGS = {
+            "visualization",
+            "overlay_visualization"
+        };
+        Set<String> DEMO_MODE_SETTINGS_SET = new HashSet<>(Arrays.asList(DEMO_MODE_SETTINGS));
+        private void enableDemoMode() {
+            for (String key : getPreferenceScreen().getSharedPreferences().getAll().keySet()) {
+                if (DEMO_MODE_SETTINGS_SET.contains(key)) {
+                    continue;
+                }
+                Preference pref = findPreference(key);
+                if (pref != null) {
+                    findPreference(key).setVisible(false);
+                }
+            }
         }
 
         private void populateCameras() {

@@ -30,7 +30,7 @@ android {
     dependencies {
         // needed by permission helper
         implementation 'androidx.appcompat:appcompat:1.1.0'
-        implementation "com.google.android.material:material:1.0.0"
+        implementation "com.google.android.material:material:1.2.0"
         implementation 'androidx.preference:preference:1.1.0'
         implementation 'com.google.firebase:firebase-analytics:17.2.0'
         implementation 'com.crashlytics.sdk.android:crashlytics:2.10.1'
@@ -52,15 +52,17 @@ android {
         }
     }
 
-    flavorDimensions "mode"
+    flavorDimensions "mode", "type"
 
     productFlavors {
         // NOTE: the default build variant is either the one that is listed first or the
         // first one alphabetically, depending on Android Studio version. Make sure the
         // intended default is actually the first one when sorted alphabetically too
         a_default {
+            dimension "mode"
         }
         noslam {
+            dimension "mode"
             buildConfigField "boolean", "USE_SLAM", "false"
             versionNameSuffix "-noslam"
             externalNativeBuild {
@@ -70,6 +72,7 @@ android {
             }
         }
         arcore {
+            dimension "mode"
             versionNameSuffix "-arcore"
             dependencies {
                 // ARCore library
@@ -77,6 +80,7 @@ android {
             }
         }
         arengine {
+            dimension "mode"
             versionNameSuffix "-arengine"
             dependencies {
                 // AREngine from Huawei
@@ -89,6 +93,7 @@ android {
             }
         }
         arcoreandengine {
+            dimension "mode"
             versionNameSuffix "-arcore-arengine"
             dependencies {
                 implementation 'com.google.ar:core:1.14.0'
@@ -100,6 +105,17 @@ android {
                 }
             }
         }
+        research {
+            dimension "type"
+            buildConfigField "boolean", "DEMO_MODE", "false"
+        }
+        demo {
+            dimension "type"
+            buildConfigField "boolean", "DEMO_MODE", "true"
+            versionNameSuffix "-demo"
+            //applicationIdSuffix ".demo"
+        }
+
     }
 
     // delete large DBoW2 file for the non-SLAM build
