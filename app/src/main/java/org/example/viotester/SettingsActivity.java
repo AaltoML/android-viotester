@@ -88,11 +88,14 @@ public class SettingsActivity extends AppCompatActivity {
         }
 
         String[] DEMO_MODE_SETTINGS = {
+            "category_visualization",
             "visualization",
             "overlay_visualization"
         };
         Set<String> DEMO_MODE_SETTINGS_SET = new HashSet<>(Arrays.asList(DEMO_MODE_SETTINGS));
         private void enableDemoMode() {
+            findPreference("category_algorithm").setVisible(false);
+            findPreference("category_data_recording").setVisible(false);
             for (String key : getPreferenceScreen().getSharedPreferences().getAll().keySet()) {
                 if (DEMO_MODE_SETTINGS_SET.contains(key)) {
                     continue;

@@ -17,7 +17,7 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <PreferenceCategory app:title="Algorithm">
+    <PreferenceCategory app:title="Algorithm" app:key="category_algorithm">
         <ListPreference
             app:defaultValue="0"
             app:entries="@array/placeholders"
@@ -89,7 +89,7 @@
             app:defaultValue="true" />
 
     </PreferenceCategory>
-    <PreferenceCategory app:title="Visualization">
+    <PreferenceCategory app:title="Visualization" app:key="category_visualization">
         <ListPreference
             app:defaultValue="plain_video"
             app:entries="@array/placeholders"
@@ -113,7 +113,7 @@
             app:title="Text debug stats"
             app:defaultValue="true" />
     </PreferenceCategory>
-    <PreferenceCategory app:title="Data recording">
+    <PreferenceCategory app:title="Data recording" app:key="category_data_recording">
         <SwitchPreference
             app:key="record_tracking_poses"
             app:title="Tracking: record poses"
