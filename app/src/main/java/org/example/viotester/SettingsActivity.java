@@ -28,6 +28,14 @@ public class SettingsActivity extends AppCompatActivity {
     static private final String DEFAULT_RESO = "640x480";
     static private final String DEFAULT_FPS = "30";
 
+    static String[] DEMO_MODE_SETTINGS = {
+            "category_visualization",
+            "visualization",
+            "overlay_visualization",
+            "reset_preferences"
+    };
+    static Set<String> DEMO_MODE_SETTINGS_SET = new HashSet<>(Arrays.asList(DEMO_MODE_SETTINGS));
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,17 +90,26 @@ public class SettingsActivity extends AppCompatActivity {
             setFocalLength();
             findPreference("enable_slam").setEnabled(mSlamPossible);
 
+            Preference resetButton = findPreference("reset_preferences");
+            resetButton.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+                @Override
+                public boolean onPreferenceClick(Preference preference) {
+                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+                    SharedPreferences.Editor editor = preferences.edit();
+                    editor.clear();
+                    editor.apply();
+                    PreferenceManager.setDefaultValues(getActivity(), R.xml.root_preferences, true);
+                    getPreferenceScreen().removeAll();
+                    onCreatePreferences(null,null);
+                    return true;
+                }
+            });
+
             if (BuildConfig.DEMO_MODE) {
                 enableDemoMode();
             }
         }
 
-        String[] DEMO_MODE_SETTINGS = {
-            "category_visualization",
-            "visualization",
-            "overlay_visualization"
-        };
-        Set<String> DEMO_MODE_SETTINGS_SET = new HashSet<>(Arrays.asList(DEMO_MODE_SETTINGS));
         private void enableDemoMode() {
             findPreference("category_algorithm").setVisible(false);
             findPreference("category_data_recording").setVisible(false);
@@ -102,7 +119,7 @@ public class SettingsActivity extends AppCompatActivity {
                 }
                 Preference pref = findPreference(key);
                 if (pref != null) {
-                    findPreference(key).setVisible(false);
+                    pref.setVisible(false);
                 }
             }
         }
