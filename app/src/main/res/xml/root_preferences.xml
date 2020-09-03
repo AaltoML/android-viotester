@@ -63,12 +63,12 @@
         <SwitchPreference
             app:key="fast_mode"
             app:title="FAST mode"
-            app:defaultValue="false" />
+            app:defaultValue="true" />
 
         <SwitchPreference
             app:key="half_fps"
             app:title="Half FPS mode"
-            app:defaultValue="false" />
+            app:defaultValue="true" />
 
         <SwitchPreference
             app:key="use_calib_acc"
@@ -111,7 +111,7 @@
         <SwitchPreference
             app:key="show_text_debug"
             app:title="Text debug stats"
-            app:defaultValue="true" />
+            app:defaultValue="false" />
     </PreferenceCategory>
     <PreferenceCategory app:title="Data recording" app:key="category_data_recording">
         <SwitchPreference
@@ -142,7 +142,7 @@
             app:key="compress_to_archive"
             app:title="Compress to tar file"
             app:summary="Compresses recorded data into a tar file. This can make the app unresponsive after long sessions."
-            app:defaultValue="true">
+            app:defaultValue="false">
         </SwitchPreference>
     </PreferenceCategory>
 
