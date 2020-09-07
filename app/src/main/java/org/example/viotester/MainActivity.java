@@ -8,6 +8,7 @@ import android.view.View;
 import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.preference.PreferenceManager;
 
 import org.example.viotester.ext_ar.TrackingProvider;
 import org.example.viotester.modules.CalibrationActivity;
@@ -32,6 +33,8 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         new AssetCopier(this); // copies stuff and saves paths to SharedPreferences
+
+        PreferenceManager.setDefaultValues(this, R.xml.root_preferences, false);
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
 
