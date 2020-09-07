@@ -3,11 +3,16 @@ package org.example.viotester;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.Log;
+import android.view.View;
 import android.widget.EditText;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -15,12 +20,21 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.EditTextPreference;
 import androidx.preference.ListPreference;
+import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 
 public class SettingsActivity extends AppCompatActivity {
     static private final String DEFAULT_RESO = "640x480";
     static private final String DEFAULT_FPS = "30";
+
+    static String[] DEMO_MODE_SETTINGS = {
+            "category_visualization",
+            "visualization",
+            "overlay_visualization",
+            "reset_preferences"
+    };
+    static Set<String> DEMO_MODE_SETTINGS_SET = new HashSet<>(Arrays.asList(DEMO_MODE_SETTINGS));
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +89,39 @@ public class SettingsActivity extends AppCompatActivity {
             populateOverlayVisualizations();
             setFocalLength();
             findPreference("enable_slam").setEnabled(mSlamPossible);
+
+            Preference resetButton = findPreference("reset_preferences");
+            resetButton.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+                @Override
+                public boolean onPreferenceClick(Preference preference) {
+                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+                    SharedPreferences.Editor editor = preferences.edit();
+                    editor.clear();
+                    editor.apply();
+                    PreferenceManager.setDefaultValues(getActivity(), R.xml.root_preferences, true);
+                    getPreferenceScreen().removeAll();
+                    onCreatePreferences(null,null);
+                    return true;
+                }
+            });
+
+            if (BuildConfig.DEMO_MODE) {
+                enableDemoMode();
+            }
+        }
+
+        private void enableDemoMode() {
+            findPreference("category_algorithm").setVisible(false);
+            findPreference("category_data_recording").setVisible(false);
+            for (String key : getPreferenceScreen().getSharedPreferences().getAll().keySet()) {
+                if (DEMO_MODE_SETTINGS_SET.contains(key)) {
+                    continue;
+                }
+                Preference pref = findPreference(key);
+                if (pref != null) {
+                    pref.setVisible(false);
+                }
+            }
         }
 
         private void populateCameras() {

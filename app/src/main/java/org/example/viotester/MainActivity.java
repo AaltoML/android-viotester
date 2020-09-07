@@ -7,6 +7,9 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.preference.PreferenceManager;
+
 import org.example.viotester.ext_ar.TrackingProvider;
 import org.example.viotester.modules.CalibrationActivity;
 import org.example.viotester.modules.DataCollectionActivity;
@@ -31,6 +34,10 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         new AssetCopier(this); // copies stuff and saves paths to SharedPreferences
 
+        PreferenceManager.setDefaultValues(this, R.xml.root_preferences, false);
+
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+
         setContentView(R.layout.activity_main);
 
         for (int i = 0; i < TrackingProvider.ACTIVITY_CLASSES.length; ++i) {
@@ -53,6 +60,16 @@ public class MainActivity extends Activity {
         findViewById(R.id.btn_calibration).setOnClickListener(goToActivity(CalibrationActivity.class));
         findViewById(R.id.btn_share).setOnClickListener(goToActivity(ShareListActivity.class));
         findViewById(R.id.btn_settings).setOnClickListener(goToActivity(SettingsActivity.class));
+
+        if (BuildConfig.DEMO_MODE) {
+            enableDemoMode();
+        }
+    }
+
+    private void enableDemoMode() {
+        findViewById(R.id.btn_share).setVisibility(View.GONE);
+        findViewById(R.id.btn_data_collection).setVisibility(View.GONE);
+        findViewById(R.id.btn_calibration).setVisibility(View.GONE);
     }
 
     @Override
