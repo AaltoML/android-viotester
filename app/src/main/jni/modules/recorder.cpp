@@ -1,5 +1,4 @@
 #include <opencv2/core.hpp>
-#include "../opengl/algorithm_renderer.hpp"
 #include "../algorithm_module.hpp"
 #include "jsonl-recorder/recorder.hpp"
 #include "logging.hpp"
@@ -40,7 +39,8 @@ struct RecordingModule : public AlgorithmModule {
                             int cameraInd, double focalLength, double px, double py) final {
         if (recordCamera) {
             assert(colorFrame != nullptr);
-            defaultOpenGLRenderer::setBgraCameraData(colorFrame->cols, colorFrame->rows, colorFrame->data);
+            // TODO
+            //defaultOpenGLRenderer::setBgraCameraData(colorFrame->cols, colorFrame->rows, colorFrame->data);
             recorder->addFrame(recorder::FrameData {
                     .t = t,
                     .cameraInd = cameraInd,

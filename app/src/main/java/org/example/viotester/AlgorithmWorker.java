@@ -7,18 +7,15 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.media.Image;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.SystemClock;
 import android.util.Log;
 import android.util.Size;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import androidx.annotation.Nullable;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -29,22 +26,16 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     public interface Listener {
         void onStats(String stats, int trackingStatus);
         void onAvailableSizes(Size[] sizes);
-        void onAvailableFps(Set<Integer> fps);
         void onAvailableCameras(List<String> cameras);
         void onRelativeFocalLength(double relativeFocalLength);
     }
 
     public static class Settings {
         public enum VideoVisualization {
-            NONE(false),
-            PLAIN_VIDEO(true),
-            TRACKER_DEBUG(true),
-            ODOMETRY_DEBUG(true);
-
-            VideoVisualization(boolean colorFrame) {
-                processColorFrame = colorFrame;
-            }
-            private final boolean processColorFrame;
+            NONE,
+            PLAIN_VIDEO,
+            TRACKER_DEBUG,
+            ODOMETRY_DEBUG;
         }
 
         public enum OverlayVisualization {
@@ -156,12 +147,8 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     private final FrequencyMonitor mAccMonitor;
     private final FrequencyMonitor mGyroMonitor;
     private final FrequencyMonitor mProcessedFpsMonitor;
-    private final double[] mPoseData = new double[7];
 
-    private byte[] mCameraImageBuffer = null;
     private CameraWorker.CameraParameters mCameraParameters = null;
-    private boolean mInitialized = false;
-    private boolean mProcessColorFrames = false;
 
     //private final static int GYRO_SENSOR = Sensor.TYPE_GYROSCOPE_UNCALIBRATED;
     private final int mGyroSensor;
@@ -235,7 +222,6 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     public void start() {
         Log.d(TAG, "start");
         // always record sensors at max rate when
-        mInitialized = false;
         final int sensorDelay = SensorManager.SENSOR_DELAY_FASTEST;
         for (Sensor sensor : mSensors) {
             mSensorManager.registerListener(this, sensor, sensorDelay, mNativeHandler);
@@ -245,10 +231,11 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         mProcessedFpsMonitor.start();
         mGpsListener.start();
 
-        if (!mInitialized && !mSettings.recordCamera) {
+        // TODO
+        /*if (!mInitialized && !mSettings.recordCamera) {
             Log.i(TAG, "dummy initialization with screen dimensions");
             configure(mSettings.screenWidth, mSettings.screenHeight, mSettings.moduleName, jsonSettings());
-        }
+        }*/
     }
 
     public void stop() {
@@ -260,138 +247,12 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         mGpsListener.stop();
     }
 
-    @Override
-    public void onCameraStart(CameraWorker.CameraParameters cameraParameters) {
-        Log.d(TAG, "onCameraStart(" + cameraParameters + ")");
-        mCameraParameters = cameraParameters;
-    }
-
-    @Override
-    public void onImage(Image image, long frameNumber, final int cameraInd,
-                        final float focalLength, final float px, final float py) {
-        final long t = image.getTimestamp();
-        mProcessedFpsMonitor.onSample();
-
-        //Log.v(TAG, "onImage t: " + t + ", image t " + image.getTimestamp());
-
-        final int width = image.getWidth();
-        final int height = image.getHeight();
-
-        if (!mInitialized) {
-            mInitialized = true;
-
-            mSettings.focalLength = -1;
-            if (mCameraParameters != null) {
-                Log.i(TAG, "focal length from camera API: "+mCameraParameters.focalLength);
-                mSettings.focalLength = mCameraParameters.focalLength;
-                mListener.onRelativeFocalLength(mCameraParameters.focalLength / width);
-            }
-            else if (mSettings.relativeFocalLength != null) {
-                Log.i(TAG, "relative focal length from settings: " + mSettings.relativeFocalLength);
-                mSettings.focalLength = mSettings.relativeFocalLength * width;
-            } else {
-                Log.i(TAG, "default focal length");
-            }
-
-            mSettings.principalPointX = mCameraParameters == null ? -1 : mCameraParameters.principalPointX;
-            mSettings.principalPointY = mCameraParameters == null ? -1 : mCameraParameters.principalPointY;
-
-            mProcessColorFrames = configure(width, height, mSettings.moduleName, jsonSettings());
-
-            if (mSettings.parametersFileName != null) {
-                writeParamsFile();
-            }
-            if (mSettings.infoFileName != null) {
-                String device = Build.MANUFACTURER
-                        + " " + Build.MODEL
-                        + " " + Build.VERSION.RELEASE
-                        + " " + Build.VERSION_CODES.class.getFields()[android.os.Build.VERSION.SDK_INT].getName();
-                writeInfoFile(mMode, device);
-            }
-        }
-
-        final Image.Plane[] planes = image.getPlanes();
-        final Image.Plane grayPlane = planes[0];
-
-        final int imageSize = grayPlane.getBuffer().remaining();
-        int colorPlaneSize = 0;
-        if (mCameraImageBuffer == null) {
-            // enough to fit both Gray (= Y) and subsampled U & V buffers
-            mCameraImageBuffer = new byte[imageSize * (mProcessColorFrames ? 2 : 1)];
-            assert(grayPlane.getPixelStride() == 1);
-            if (mProcessColorFrames) {
-                // most of this stuff is guaranteed in the Android Camera 2 API, checking anyway...
-                assert(planes.length == 3);
-                assert(planes[2].getBuffer().remaining() == planes[1].getBuffer().remaining());
-                assert(planes[1].getPixelStride() <= 2);
-                assert(planes[2].getPixelStride() <= 2);
-                assert(planes[1].getRowStride() == grayPlane.getRowStride());
-                assert(planes[1].getRowStride() == planes[2].getRowStride());
-            }
-        }
-
-        grayPlane.getBuffer().get(mCameraImageBuffer, 0, imageSize);
-
-        if (mProcessColorFrames) {
-            // get U and V data
-            assert(imageSize % 2 == 0);
-            final int vSize = planes[1].getBuffer().remaining();
-            final int uSize = planes[2].getBuffer().remaining();
-            assert(vSize <= imageSize/2 && vSize == uSize);
-            colorPlaneSize = vSize;
-            assert(imageSize % 2 == 0);
-            planes[1].getBuffer().get(mCameraImageBuffer, imageSize, colorPlaneSize);
-            planes[2].getBuffer().get(mCameraImageBuffer, imageSize + colorPlaneSize, colorPlaneSize);
-        }
-
-        boolean visualizationEnabled = mProcessColorFrames;
-
-        final int finalColorPlaneSize = colorPlaneSize;
-        final int rowStride = grayPlane.getRowStride(); // Store to var so image can be closed
-        final int pixelStride = planes[1].getPixelStride(); // Store to var so image can be closed
-        mNativeHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                processFrame(t,
-                        rowStride,
-                        pixelStride,
-                        imageSize,
-                        finalColorPlaneSize,
-                        mCameraImageBuffer,
-                        mProcessColorFrames,
-                        mPoseData,
-                        cameraInd,
-                        focalLength,
-                        px,
-                        py);
-            }
-        });
-
-        if (visualizationEnabled) {
-            drawVisualization();
-        }
-
-        String statsString = getStatsString();
-        statsString += String.format(" %.3g FPS", mProcessedFpsMonitor.getLatestFrequency());
-        mListener.onStats(statsString, getTrackingStatus());
-    }
-
     private String jsonSettings() {
         try {
             return new ObjectMapper().writeValueAsString(mSettings);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @Override
-    public int getTargetFps() {
-        return mSettings.targetFps;
-    }
-
-    @Override
-    public void setAvailableFps(Set<Integer> fps) {
-        mListener.onAvailableFps(fps);
     }
 
     @Override
@@ -410,8 +271,61 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     }
 
     @Override
-    public Handler getHandler() {
-        return mNativeHandler;
+    public void onCaptureStart(CameraWorker.CameraParameters parameters, int textureId) {
+        mCameraParameters = parameters;
+        int width = mCameraParameters.width;
+        int height = mCameraParameters.height;
+
+        mSettings.focalLength = -1;
+        if (mCameraParameters != null) {
+            Log.i(TAG, "focal length from camera API: "+mCameraParameters.focalLength);
+            mSettings.focalLength = mCameraParameters.focalLength;
+            mListener.onRelativeFocalLength(mCameraParameters.focalLength / width);
+        }
+        else if (mSettings.relativeFocalLength != null) {
+            Log.i(TAG, "relative focal length from settings: " + mSettings.relativeFocalLength);
+            mSettings.focalLength = mSettings.relativeFocalLength * width;
+        } else {
+            Log.i(TAG, "default focal length");
+        }
+
+        mSettings.principalPointX = mCameraParameters == null ? -1 : mCameraParameters.principalPointX;
+        mSettings.principalPointY = mCameraParameters == null ? -1 : mCameraParameters.principalPointY;
+
+        configure(width, height, textureId, mSettings.halfFps ? 2 : 1, mSettings.moduleName, jsonSettings());
+
+        if (mSettings.parametersFileName != null) {
+            writeParamsFile();
+        }
+        if (mSettings.infoFileName != null) {
+            String device = Build.MANUFACTURER
+                    + " " + Build.MODEL
+                    + " " + Build.VERSION.RELEASE
+                    + " " + Build.VERSION_CODES.class.getFields()[android.os.Build.VERSION.SDK_INT].getName();
+            writeInfoFile(mMode, device);
+        }
+    }
+
+    @Override
+    public void onFrame(long timestamp) {
+
+        if (processFrame(timestamp,
+                0, // camera ind
+                mCameraParameters.focalLength,
+                mCameraParameters.principalPointX,
+                mCameraParameters.principalPointY))
+        {
+            mProcessedFpsMonitor.onSample();
+
+            String statsString = getStatsString();
+            statsString += String.format(" %.3g FPS", mProcessedFpsMonitor.getLatestFrequency());
+            mListener.onStats(statsString, getTrackingStatus());
+        }
+    }
+
+    @Override
+    public void onDraw() {
+        drawVisualization();
     }
 
     @Override
@@ -469,38 +383,17 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         }
     }
 
-    /**
-     * @return true if the algorithm should process color frames, false if not
-     */
-    public native boolean configure(int width, int height, String moduleName, String settingsJson);
+    public native void configureVisualization(int width, int height);
+    private native void configure(int width, int height, int textureId, int frameStride, String moduleName, String settingsJson);
+    private native boolean processFrame(long timeNanos, int cameraInd, float focalLength, float px, float py);
 
-    /**
-     *
-     * @param timeNanos input frame timestamp in nanoseconds
-     * @param rowStride YUV data parameter
-     * @param chromaPixelStride YUV data parameter
-     * @param grayImageSize YUV data parameter
-     * @param chromaPlaneSize YUV data parameter
-     * @param yuvData input YUV/Gray-only color buffer
-     * @param hasColorData does the yuvBuffer contain color planes
-     * @param outPoseData output pose [x,y,z,qw,qx,qy,qz]
-     * @return output timestamp in nanoseconds
-     */
-    public native long processFrame(
-            long timeNanos,
-            int rowStride, int chromaPixelStride, int grayImageSize, int chromaPlaneSize,
-            byte[] yuvData,
-            boolean hasColorData,
-            double[] outPoseData,
-            int cameraInd, float focalLength, float px, float py);
-
-    public native void drawVisualization();
-    public native void processGyroSample(long timeNanos, float x, float y, float z);
-    public native void processAccSample(long timeNanos, float x, float y, float z);
-    public native void processGpsLocation(long timeNanos, double latitude, double longutide, double altitude, float accuracy);
-    public native void recordPoseMatrix(long timeNanos, float[] viewMatrix, String tag);
-    public native String getStatsString();
-    public native int getTrackingStatus();
-    public native void writeInfoFile(String mode, String device);
-    public native void writeParamsFile();
+    private native void drawVisualization();
+    private native void processGyroSample(long timeNanos, float x, float y, float z);
+    private native void processAccSample(long timeNanos, float x, float y, float z);
+    private native void processGpsLocation(long timeNanos, double latitude, double longitude, double altitude, float accuracy);
+    private native void recordPoseMatrix(long timeNanos, float[] viewMatrix, String tag);
+    private native String getStatsString();
+    private native int getTrackingStatus();
+    private native void writeInfoFile(String mode, String device);
+    private native void writeParamsFile();
 }

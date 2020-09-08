@@ -19,7 +19,7 @@ uniform sampler2D texture;
 varying vec2 v_textureCoords;
 void main() {
   vec4 color = texture2D(texture, v_textureCoords);
-  gl_FragColor = vec4(color.zyx, 1.0); // NOTE: BRG -> RGB flip
+  gl_FragColor = vec4(color.bgr, 1.0); // NOTE: BRG -> RGB flip (TODO: OpenCV legacy -> remove)
 })";
 }
 
@@ -72,14 +72,18 @@ public:
                             GL_UNSIGNED_BYTE, textureData);
             glBindTexture(GL_TEXTURE_2D, 0);
             glUtil::checkError("CameraRenderer texture update");
+            // log_debug("texture updated (%d, %d)", textureWidth, textureHeight);
         }
 
-        glClear(GL_COLOR_BUFFER_BIT); // clear to avoid showing garbage in letterboxing
+        // glDisable(GL_DEPTH_TEST);
+        glViewport(0, 0, width, height);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear to avoid showing garbage in letterboxing
 
         const int x0 = (width - activeWidth) / 2;
         const int y0 = (height - activeHeight) / 2;
-        glViewport(x0, y0, activeWidth, activeHeight);
 
+        // log_debug("glViewport %d, %d, %d, %d", x0, y0, activeWidth, activeHeight);
+        glViewport(x0, y0, activeWidth, activeHeight);
         glUseProgram(shaderProgram);
 
         glUniform1i(uniformTexture, 1);

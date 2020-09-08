@@ -1,5 +1,4 @@
 #include "../algorithm_module.hpp"
-#include "opengl/algorithm_renderer.hpp"
 
 #include <iomanip>
 #include <sstream>
@@ -7,6 +6,7 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
 #include <algorithm_module.hpp>
+#include <opengl/camera_renderer.hpp>
 #include "logging.hpp" // logger
 
 namespace {
@@ -21,6 +21,8 @@ private:
     std::vector<std::vector<cv::Point3f>> objectPoints;
 
     cv::Mat colorMat;
+    cv::Mat visualizationMat;
+    std::unique_ptr<CameraRenderer> renderer;
 
     // outputs
     cv::Mat cameraMatrix;
@@ -96,21 +98,22 @@ public:
         return {};
     }
 
-    bool setupRendering(cv::Mat &outMat) final {
-        outMat = colorMat.clone();
+    bool setupRendering(int w, int h) final {
+        renderer = CameraRenderer::build(w, h);
+        visualizationMat = colorMat.clone();
         return true;
     }
 
-    bool render(cv::Mat &outMat) final {
-        assert(!colorMat.empty() && !outMat.empty());
+    void render() final {
+        assert(!colorMat.empty());
 
         constexpr int RADIUS = 10;
-        colorMat.copyTo(outMat);
+        colorMat.copyTo(visualizationMat);
         for (const auto &c : centers) {
-            cv::circle(outMat, c, RADIUS, cv::Scalar(0xff, 0x0, 0xff));
+            cv::circle(visualizationMat, c, RADIUS, cv::Scalar(0xff, 0x0, 0xff));
         }
-        defaultOpenGLRenderer::setBgraCameraData(outMat.cols, outMat.rows, outMat.data);
-        return true;
+        renderer->setTextureData(visualizationMat.cols, visualizationMat.rows, visualizationMat.data, CameraRenderer::AspectFixMethod::CROP);
+        renderer->render();
     }
 
     std::string status() const final {
