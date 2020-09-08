@@ -277,7 +277,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         int height = mCameraParameters.height;
 
         mSettings.focalLength = -1;
-        if (mCameraParameters != null) {
+        if (mCameraParameters.focalLength > 0) {
             Log.i(TAG, "focal length from camera API: "+mCameraParameters.focalLength);
             mSettings.focalLength = mCameraParameters.focalLength;
             mListener.onRelativeFocalLength(mCameraParameters.focalLength / width);
@@ -289,8 +289,8 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
             Log.i(TAG, "default focal length");
         }
 
-        mSettings.principalPointX = mCameraParameters == null ? -1 : mCameraParameters.principalPointX;
-        mSettings.principalPointY = mCameraParameters == null ? -1 : mCameraParameters.principalPointY;
+        mSettings.principalPointX = mCameraParameters.principalPointX;
+        mSettings.principalPointY = mCameraParameters.principalPointY;
 
         configure(width, height, textureId, mSettings.halfFps ? 2 : 1, mSettings.moduleName, jsonSettings());
 

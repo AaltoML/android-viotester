@@ -91,7 +91,7 @@ public class CameraWorker {
     public static class CameraParameters {
         int width;
         int height;
-        float focalLength;
+        float focalLength = -1;
         float principalPointX;
         float principalPointY;
 
@@ -167,41 +167,43 @@ public class CameraWorker {
         float cy = intrinsics[3];
         float skew = intrinsics[4];
 
-        if (fx <= 0.0 || fy <= 0.0) {
-            Log.w(TAG, "invalid focal lengths " + fx + ", " + fy);
-            return null;
-        }
-
         CameraParameters params = new CameraParameters();
-
-        int nativeWidth = activeRect.right - activeRect.left;
-        int nativeHeight = activeRect.bottom - activeRect.top;
-        float expectedCx = nativeWidth * 0.5f + activeRect.left;
-        float expectedCy = nativeHeight * 0.5f + activeRect.top;
-
-        Log.d(TAG, "active array dimensions: " + nativeWidth + "x" + nativeHeight);
-        if (nativeWidth < nativeHeight) {
-            Log.w(TAG, "unexpected native array dimensions, width " + nativeWidth + " < height " + nativeHeight);
-        }
 
         params.cameraId = cameraId;
         params.width = dataSize.getWidth();
         params.height = dataSize.getHeight();
 
-        params.principalPointX = ((cx - expectedCx) / nativeWidth + 0.5f) * params.width;
-        params.principalPointY = ((cy - expectedCy) / nativeWidth) * params.width + params.height * 0.5f;
 
-        if (Math.abs(skew) > 1e-6) {
-            Log.w(TAG, "non zero intrinsic skew " + skew);
+        if (fx <= 0.0 || fy <= 0.0) {
+            Log.w(TAG, "invalid focal lengths " + fx + ", " + fy);
+            params.principalPointX = params.width * 0.5f;
+            params.principalPointY = params.height * 0.5f;
+        } else {
+            int nativeWidth = activeRect.right - activeRect.left;
+            int nativeHeight = activeRect.bottom - activeRect.top;
+            float expectedCx = nativeWidth * 0.5f + activeRect.left;
+            float expectedCy = nativeHeight * 0.5f + activeRect.top;
+
+            Log.d(TAG, "active array dimensions: " + nativeWidth + "x" + nativeHeight);
+            if (nativeWidth < nativeHeight) {
+                Log.w(TAG, "unexpected native array dimensions, width " + nativeWidth + " < height " + nativeHeight);
+            }
+
+            params.principalPointX = ((cx - expectedCx) / nativeWidth + 0.5f) * params.width;
+            params.principalPointY = ((cy - expectedCy) / nativeWidth) * params.width + params.height * 0.5f;
+
+            if (Math.abs(skew) > 1e-6) {
+                Log.w(TAG, "non zero intrinsic skew " + skew);
+            }
+
+            float relFocalX = fx / nativeWidth;
+            float relFocalY = fy / nativeWidth; // width and not height on purpose
+            params.focalLength = 0.5f * (relFocalX + relFocalY) * params.width;
+
+            Log.d(TAG, "native principal point " + cx + ", " + cy);
+            Log.d(TAG, "focal length " + params.focalLength + " / " + dataSize.getWidth() + " = "
+                    + fx + " / " + pixelArraySize.getWidth());
         }
-
-        float relFocalX = fx / nativeWidth;
-        float relFocalY = fy / nativeWidth; // width and not height on purpose
-        params.focalLength = 0.5f * (relFocalX + relFocalY) * params.width;
-
-        Log.d(TAG, "native principal point " + cx + ", " + cy);
-        Log.d(TAG, "focal length " + params.focalLength + " / " + dataSize.getWidth() + " = "
-                + fx + " / " + pixelArraySize.getWidth());
 
         return params;
     }
