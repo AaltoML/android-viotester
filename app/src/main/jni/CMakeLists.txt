@@ -41,7 +41,8 @@ add_library(${target} SHARED
 set(VIO_ANDROID_LIBS
         "GLESv3"
         mobile-cv-suite
-        camera2ndk # mediandk ?
+        camera2ndk
+        mediandk
         android
         log)
 
