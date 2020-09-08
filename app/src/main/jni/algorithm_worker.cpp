@@ -33,7 +33,7 @@ namespace {
     std::mutex mutex;
 
     std::unique_ptr<GpuCameraAdapter> gpuAdapter;
-    std::unique_ptr<GpuCameraAdapter::TextureAdapter> rgbaTexture;
+    std::unique_ptr<GpuCameraAdapter::TextureAdapter> rgbaTexture, grayTexture;
 
     json settingsJson;
     std::unique_ptr<AlgorithmModule> algorithm;
@@ -66,6 +66,8 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_configureVisua
     std::lock_guard<std::mutex> lock(mutex);
     visualizationEnabled = algorithm->setupRendering(visuWidth, visuHeight);
     if (visualizationEnabled) {
+        assert(gpuAdapter);
+        rgbaTexture = gpuAdapter->createTextureAdapter(GpuCameraAdapter::TextureAdapter::Type::BGRA);
         log_debug("screen size size set to %dx%d", visuWidth, visuHeight);
     }
 }
@@ -101,10 +103,11 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_configure(
     algorithm = AlgorithmModule::build(width, height, moduleName, settingsJsonPtr);
 
     gpuAdapter = GpuCameraAdapter::create(width, height, textureId);
-    rgbaTexture = gpuAdapter->createTextureAdapter(GpuCameraAdapter::TextureAdapter::Type::BGRA);
+    grayTexture = gpuAdapter->createTextureAdapter(GpuCameraAdapter::TextureAdapter::Type::GRAY_COMPRESSED);
 
     log_debug("setting up color frames");
     colorFrame = cv::Mat(cv::Size(width, height), CV_8UC4);
+    grayFrame = cv::Mat(cv::Size(width, height), CV_8UC1);
 }
 
 JNIEXPORT jboolean JNICALL Java_org_example_viotester_AlgorithmWorker_processFrame(
@@ -115,14 +118,20 @@ JNIEXPORT jboolean JNICALL Java_org_example_viotester_AlgorithmWorker_processFra
         jfloat px,
         jfloat py) {
 
-    assert(rgbaTexture);
+    assert(grayTexture);
     if ((frameNumber++ % frameStride) != 0) return false;
 
-    rgbaTexture->render();
-    rgbaTexture->readPixels(colorFrame.data);
+    grayTexture->render();
+    grayTexture->readPixels(grayFrame.data);
 
-    // TODO: handle this on the GPU
-    cv::cvtColor(colorFrame, grayFrame, cv::COLOR_BGRA2GRAY);
+    if (rgbaTexture) {
+        rgbaTexture->render();
+        rgbaTexture->readPixels(colorFrame.data);
+    }
+
+    // for debugging
+    //cv::cvtColor(colorFrame, grayFrame, cv::COLOR_BGRA2GRAY);
+    //cv::cvtColor(grayFrame, colorFrame, cv::COLOR_GRAY2BGRA);
 
     std::lock_guard<std::mutex> lock(mutex);
     colorFrame.copyTo(pendingFrame.colorFrame);

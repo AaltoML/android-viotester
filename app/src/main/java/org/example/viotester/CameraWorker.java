@@ -34,6 +34,7 @@ public class CameraWorker {
     private final CameraParameters mParameters;
     private final Listener mListener;
     private SurfaceTexture mSurfaceTexture;
+    private Surface mSurface; // use member to avoid garbage collection (may not be needed)
     private boolean mHasNewCameraFrame;
 
     CameraWorker(CameraManager manager, Listener listener) {
@@ -58,7 +59,8 @@ public class CameraWorker {
             }
         });
 
-        startCameraSession(mParameters.cameraId, new Surface(mSurfaceTexture));
+        mSurface = new Surface(mSurfaceTexture);
+        startCameraSession(mParameters.cameraId, mSurface);
         mListener.onCaptureStart(mParameters, glTextureIds[0]);
     }
 

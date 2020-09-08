@@ -68,7 +68,6 @@ struct GpuCameraAdapterImplementation : GpuCameraAdapter {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, textureId);
 
-            // luminance alpha -> 2 floats per voxel
             glTexImage2D(GL_TEXTURE_2D, 0, spec.internalFormat, width, height, 0, spec.format, GL_UNSIGNED_BYTE, nullptr);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -101,6 +100,7 @@ struct GpuCameraAdapterImplementation : GpuCameraAdapter {
             assert(shaderProgram != 0);
             aVertexPos = glGetAttribLocation(shaderProgram, "a_vertexPos");
             aTexCoords = glGetAttribLocation(shaderProgram, "a_texCoord");
+            uTexture = glGetUniformLocation(shaderProgram, "uTexture");
 
             glUtil::checkError("Texture::Texture");
         }
@@ -121,29 +121,41 @@ struct GpuCameraAdapterImplementation : GpuCameraAdapter {
 
         int render(bool bindFrameBuffer) final {
             glUseProgram(shaderProgram);
+            glUtil::checkError("Texture::render: glUseProgram");
             glDepthMask(GL_FALSE);
             // glDisable(GL_BLEND);
 
             if (bindFrameBuffer) glBindFramebuffer(GL_FRAMEBUFFER, frameBufferId);
+            glUtil::checkError("Texture::render: glBindFramebuffer");
 
             glActiveTexture(GL_TEXTURE0);
-            glUniform1i(uTexture, 0);
             glBindTexture(spec.bindType, parent.textureId);
-            //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glUtil::checkError("Texture::render: glBindTexture");
+            glUniform1i(uTexture, 0);
+            glUtil::checkError("Texture::render: glUniform1i");
+            glTexParameteri(spec.bindType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(spec.bindType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(spec.bindType, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(spec.bindType, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
             glBindBuffer(GL_ARRAY_BUFFER, parent.vertexBuffer);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, parent.vertexIndexBuffer);
+            glUtil::checkError("Texture::render: glBindBuffer");
 
             glEnableVertexAttribArray(aVertexPos);
             glVertexAttribPointer(aVertexPos, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 5, nullptr);
+            glUtil::checkError("Texture::render: glVertexAttribPointer");
 
             glEnableVertexAttribArray(aTexCoords);
             glVertexAttribPointer(aTexCoords, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void *)(3 * sizeof(float))); // ???
+            glUtil::checkError("Texture::render: glVertexAttribPointer");
 
             if (bindFrameBuffer) glViewport(0, 0, width, height);
+            glUtil::checkError("Texture::render: glViewport");
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);;
+            glUtil::checkError("Texture::render: glDrawElements");
 
             glDisableVertexAttribArray(aVertexPos);
             glDisableVertexAttribArray(aTexCoords);
@@ -156,7 +168,7 @@ struct GpuCameraAdapterImplementation : GpuCameraAdapter {
             glUseProgram(0);
             if (bindFrameBuffer) glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-            glUtil::checkError("Texture::render");
+            glUtil::checkError("Texture::render: unbind");
 
             return textureId;
         }
@@ -210,6 +222,36 @@ struct GpuCameraAdapterImplementation : GpuCameraAdapter {
             case TextureAdapter::Type::GRAY:
                 spec.internalFormat = GL_R8;
                 spec.format = GL_RED;
+                break;
+            case TextureAdapter::Type::GRAY_COMPRESSED: {
+                assert((width % 4) == 0);
+                spec.width = width / 4;
+                // https://stackoverflow.com/a/37484800/1426569
+                // pix = v_texCoord.x * WIDTH - 0.5; // pixel 0-based index
+                // pix_other = pix * WIDTH_OTHER / WIDTH;
+                // pix_next_n = pix_other + n
+                // tex_coord_next_n = (pix_next_n + 0.5) / WIDTH_OTHER
+                //  = ((v_texCoord.x * WIDTH - 0.5) * WIDTH_OTHER / WIDTH + n + 0.5) / WIDTH_OTHER
+                //  = ((v_texCoord.x - 0.5 / WIDTH) * WIDTH_OTHER + n + 0.5) / WIDTH_OTHER
+                //  = v_texCoord.x - 0.5 / WIDTH + (n + 0.5) / WIDTH_OTHER
+                //  = v_texCoord.x + n / WIDTH_OTHER + 0.5 * (1/WIDTH_OTHER - 1/WIDTH)
+                spec.fragmentShaderBody = R"(
+                    void main()
+                    {
+                        const int WIDTH = )" + std::to_string(spec.width) + R"(;
+                        const int WIDTH_ORIG = 4 * WIDTH;
+                        const float offset = 0.5 * (1.0/float(WIDTH_ORIG) - 1.0/float(WIDTH));
+                        vec2 delta = vec2(1.0 / float(WIDTH_ORIG), 0);
+                        vec2 coord = v_texCoord + vec2(offset, 0);
+                        gl_FragColor = vec4(
+                            texture2D(uTexture, coord).g,
+                            texture2D(uTexture, coord + delta).g,
+                            texture2D(uTexture, coord + 2.0 * delta).g,
+                            texture2D(uTexture, coord + 3.0 * delta).g
+                        );
+                    }
+                )";
+                }
                 break;
             default:
                 assert(false);
