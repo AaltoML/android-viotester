@@ -29,19 +29,20 @@ public:
     virtual void addJsonData(const json &json) {};
 
     /**
-     * If this module supports visualizations, initialize the given matrix to the
-     * correct size (can be assumed to be of type CV_8UC4) and return true
-     * @param output Initialized cv::Mat if visualization are supported, otherwise undefined
+     * If this module supports visualizations, initialize visualizations for
+     * given screen size
+     * @param width screen / visualization window width
+     * @param height screen / visualization window height
      * @return true if visualizations are supported, false otherwise
      */
-    virtual bool setupRendering(cv::Mat &output) { (void)output; return false; }
+    virtual bool setupRendering(int width, int height) { (void)width; (void)height; return false; }
 
     /**
      * @param outMat MUST be CV_8UC4, and the same size (or the same object) as created by
      *  setupRendering, which must be called first
      * @return true if something was rendered. false otherwise
      */
-    virtual bool render(cv::Mat &outMat) { return false; }
+    virtual void render() {}
     virtual std::string status() const { return ""; }
     virtual int trackingStatus() { return -1; };
 

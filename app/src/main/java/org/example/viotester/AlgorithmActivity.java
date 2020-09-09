@@ -6,16 +6,13 @@ import android.content.SharedPreferences;
 import android.hardware.SensorManager;
 import android.hardware.camera2.CameraManager;
 import android.location.LocationManager;
-import android.media.Image;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Size;
 import android.view.Display;
-import android.view.TextureView;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
@@ -37,15 +34,13 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
     private TextView mStatsTextView;
     private AlgorithmWorker mAlgorithmWorker;
     private VisualizationUpdater mVisuUpdater;
-    private CameraWorker mCameraWorker;
-    private TextureView mDirectPreviewView;
+
+    private CameraWorker mCameraWorker = null;
+
     private DataRecorder mDataRecorder;
     protected AlgorithmWorker.Settings mAlgoWorkerSettings;
-    private final HandlerThread mHandlerThread;
-    private final Handler mNativeHandler; // All native access should go through this
 
     // adjustable flags for subclasses
-    protected boolean mRecordCamera = true;
     protected boolean mDirectCameraPreview = false;
     protected String mRecordPrefix = "";
     protected String mNativeModule;
@@ -54,36 +49,36 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
 
     protected boolean mUseCameraWorker = false;
 
-    public AlgorithmActivity() {
-        mHandlerThread = new HandlerThread("NativeHandler", Thread.MAX_PRIORITY);
-        mHandlerThread.start();
-        mNativeHandler = new Handler(mHandlerThread.getLooper());
-    }
-
     protected void adjustSettings(AlgorithmWorker.Settings settings) {}
 
     protected void logExternalPoseMatrix(long timeNs, float[] viewMtx) {
         mAlgorithmWorker.logExternalPoseMatrix(timeNs, viewMtx, mRecordPrefix);
     }
 
-    protected void logExternalImage(Image image, long frameNumber, int cameraInd,
-                                    float focalLength, float px, float py) {
-        mAlgorithmWorker.onImage(image, frameNumber, cameraInd, focalLength, px, py);
+    protected void logExternalImage(int textureId, long timeNanos, long frameNumber, int cameraInd,
+                                    int[] dimensions, float[] focalLength, float[] principalPoint) {
+        mAlgorithmWorker.logExternalImage(textureId, timeNanos, frameNumber, cameraInd,
+                dimensions[0], dimensions[1],
+                0.5f * (focalLength[0] + focalLength[1]),
+                principalPoint[0], principalPoint[1]);
     }
 
     @Override
     public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
-        AlgorithmRenderer.onSurfaceCreated(gl10, eglConfig);
+        Log.d(TAG, "onSurfaceCreated");
+        mCameraWorker.start();
     }
 
     @Override
     public void onSurfaceChanged(GL10 gl10, int w, int h) {
-        AlgorithmRenderer.onSurfaceChanged(gl10, w, h);
+        Log.d(TAG, "onSurfaceChanged");
+        mAlgorithmWorker.onSurfaceChanged(w, h);
     }
 
     @Override
     public void onDrawFrame(GL10 gl10) {
-        AlgorithmRenderer.onDrawFrame(gl10);
+        // AlgorithmRenderer.onDrawFrame(gl10);
+        mCameraWorker.onFrame();
     }
 
     /**
@@ -125,6 +120,7 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate");
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
@@ -146,19 +142,6 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
         setContentView(R.layout.viotester_surface_view);
         mStatsTextView = findViewById(R.id.stats_text_view);
         mGlSurfaceView = findViewById(R.id.gl_surface_view);
-
-        if (mDirectCameraPreview) {
-            mGlSurfaceView.setVisibility(View.GONE);
-            mGlSurfaceView = null;
-        }
-        else {
-            // set up GL rendering
-            mGlSurfaceView.setPreserveEGLContextOnPause(true);
-            mGlSurfaceView.setEGLContextClientVersion(2);
-            mGlSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
-            mGlSurfaceView.setRenderer(this);
-            mGlSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
-        }
 
         mVisuUpdater = new VisualizationUpdater();
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -212,18 +195,6 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
             }
 
             @Override
-            public void onAvailableFps(Set<Integer> fps) {
-                Set<String> fpsSet = new TreeSet<>();
-                for (int n : fps) {
-                    fpsSet.add(Integer.toString(n));
-                }
-                PreferenceManager.getDefaultSharedPreferences(AlgorithmActivity.this )
-                        .edit()
-                        .putStringSet("fps_set", fpsSet)
-                        .apply();
-            }
-
-            @Override
             public void onAvailableCameras(List<String> cameras) {
                 PreferenceManager.getDefaultSharedPreferences(AlgorithmActivity.this )
                         .edit()
@@ -239,7 +210,24 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
                         .putBoolean("has_auto_focal_length", true)
                         .apply();
             }
-        }, mNativeHandler, mRecordPrefix);
+        }, mRecordPrefix);
+
+        CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+        if (cameraManager == null) throw new RuntimeException("could not access CameraManager");
+        mCameraWorker = new CameraWorker(cameraManager, mAlgorithmWorker);
+
+        if (mDirectCameraPreview) {
+            mGlSurfaceView.setVisibility(View.GONE);
+            mGlSurfaceView = null;
+        }
+        else {
+            // set up GL rendering
+            mGlSurfaceView.setPreserveEGLContextOnPause(true);
+            mGlSurfaceView.setEGLContextClientVersion(2);
+            mGlSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+            mGlSurfaceView.setRenderer(this);
+            mGlSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
+        }
     }
 
     private AlgorithmWorker.Settings parseSettings(
@@ -313,6 +301,7 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
         s.recordCamera =  !trackingMode || prefs.getBoolean("record_tracking_sensors_and_video", false);
         s.recordPoses = mDataCollectionMode || (trackingMode && prefs.getBoolean("record_tracking_poses", false));
         s.recordSensors = mDataCollectionMode || (trackingMode && prefs.getBoolean("record_tracking_sensors_and_video", false));
+        s.previewCamera = mDataCollectionMode;
         final boolean recordingSomething = mDataCollectionMode || s.recordPoses;
         s.recordGps = recordingSomething && prefs.getBoolean("record_gps", false);
         s.recordWiFiLocations = recordingSomething && prefs.getBoolean("record_google_wifi_locations", false);
@@ -329,9 +318,6 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
         super.onPause();
         if (mGlSurfaceView != null) mGlSurfaceView.onPause();
         mAlgorithmWorker.stop();
-        if (mCameraWorker != null) {
-            mCameraWorker.destroy();
-        }
     }
 
     @Override
@@ -342,30 +328,15 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
         Log.d(TAG, "onResume");
         super.onResume();
         if (mGlSurfaceView != null) mGlSurfaceView.onResume();
-
-        if (mCameraWorker == null && (mDataCollectionMode || mUseCameraWorker)) {
-            CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-            if (cameraManager == null) throw new RuntimeException("could not access CameraManager");
-            mCameraWorker = new CameraWorker(
-                    cameraManager,
-                    mDirectPreviewView,
-                    mAlgorithmWorker,
-                    mNativeHandler,
-                    mAlgoWorkerSettings.halfFps);
-
-        }
         mAlgorithmWorker.start(); // after System.loadLibrary
+
     }
 
     @Override
     public void onDestroy() {
+        Log.d(TAG, "onDestroy");
         super.onDestroy();
-        mHandlerThread.quitSafely();
-        try {
-            mHandlerThread.join();
-        } catch (InterruptedException e) {
-            Log.e(TAG, "Failed to join native access handler thread", e);
-        }
+        if (mCameraWorker != null) mCameraWorker.stop();
         if (mDataRecorder != null) {
             mDataRecorder.flush();
             mDataRecorder = null;

@@ -25,10 +25,14 @@ MY_JNI_FUNC(void, onSurfaceChanged)(JNIEnv*, jobject, jobject, jint width, jint 
     }
 }
 
-MY_JNI_FUNC(void, onDrawFrame)(JNIEnv *env, jobject thiz, jdouble t, jfloatArray mvMatrix, jfloatArray projMatrix) {
+MY_JNI_FUNC(void, onDrawFrame)(JNIEnv *env, jobject thiz, jdouble t, jfloatArray mvMatrix, jfloatArray projMatrix, jint screenWidth, jint screenHeight) {
     assert(arRenderer);
     auto *vmat = env->GetFloatArrayElements(mvMatrix, nullptr);
     auto *projMat = env->GetFloatArrayElements(projMatrix, nullptr);
+
+    // we cannot be sure that no-one else, like the GPU texture readers have not changed
+    // the viewport so must be set again
+    glViewport(0, 0, screenWidth, screenHeight);
 
     arRenderer->setProjectionMatrix(projMat);
     arRenderer->setPose(t, vmat);

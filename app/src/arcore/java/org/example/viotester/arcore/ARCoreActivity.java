@@ -51,6 +51,7 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
     private float[] mPointCloudOutBuffer = null;
 
     private long frameNumber = 0;
+    private int screenWidth, screenHeight;
 
     @Override
     public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
@@ -65,13 +66,18 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
 
     @Override
     public void onSurfaceChanged(GL10 gl10, int w, int h) {
+        super.onSurfaceChanged(gl10, w, h);
+        screenWidth = w;
+        screenHeight = h;
         mDisplayRotationHelper.onSurfaceChanged(w, h);
-        GLES20.glViewport(0, 0, w, h);
         mNativeRenderer.onSurfaceChanged(gl10, w, h);
     }
 
     @Override
     public void onDrawFrame(GL10 gl10) {
+        // The other shaders, like GPU texture -> video recorders may have changed the
+        // viewport, so it must be set each time before rendering (unlike in the original example)
+        GLES20.glViewport(0, 0, screenWidth, screenHeight);
         // Clear screen to notify driver it should not load any pixels from previous frame.
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
@@ -99,13 +105,15 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
             camera.getProjectionMatrix(projmtx, 0, 0.1f, 100.0f);
 
             // Send image to native code for recording
-            Image image = frame.acquireCameraImage();
             CameraIntrinsics intrinsics = camera.getImageIntrinsics();
-            float focalLength = projmtx[0] * image.getWidth() / 2.f;
+            long timeNs = frame.getAndroidCameraTimestamp();
             // intrinsics.getFocalLength()[0] is the same, but let's use same method as AREngine version
-            logExternalImage(image, frameNumber++, 0, focalLength,
-                    intrinsics.getPrincipalPoint()[0], intrinsics.getPrincipalPoint()[1]);
-            image.close(); // Release image, otherwise it's kept and we run out of memory
+            logExternalImage(mBackgroundRenderer.getTextureId(),
+                    timeNs,
+                    frameNumber++, 0,
+                    intrinsics.getImageDimensions(),
+                    intrinsics.getFocalLength(),
+                    intrinsics.getPrincipalPoint());
 
             // If not tracking, don't draw 3D objects, show tracking failure reason instead.
             if (camera.getTrackingState() == TrackingState.PAUSED) {
@@ -146,9 +154,8 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
                 }
             }
 
-            long timeNs = frame.getTimestamp();
             logExternalPoseMatrix(timeNs, viewmtx);
-            mNativeRenderer.onDrawFrame(timeNs * 1e-9, viewmtx, projmtx);
+            mNativeRenderer.onDrawFrame(timeNs * 1e-9, viewmtx, projmtx, screenWidth, screenHeight);
 
         } catch (Throwable t) {
             // Avoid crashing the application due to unhandled exceptions.

@@ -15,6 +15,7 @@ import com.huawei.hiar.AREnginesApk;
 import com.huawei.hiar.ARTrackable;
 import com.huawei.hiar.ARWorldTrackingConfig;
 import com.huawei.hiar.ARPointCloud;
+import com.huawei.hiar.exceptions.ARFatalException;
 
 import java.io.IOException;
 
@@ -41,6 +42,7 @@ public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView
     private float[] mPointCloudOutBuffer = null;
 
     private long frameNumber = 0;
+    private int screenWidth, screenHeight;
 
     @Override
     public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
@@ -55,13 +57,18 @@ public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView
 
     @Override
     public void onSurfaceChanged(GL10 gl10, int w, int h) {
+        super.onSurfaceChanged(gl10, w, h);
         mDisplayRotationHelper.onSurfaceChanged(w, h);
-        GLES20.glViewport(0, 0, w, h);
         mNativeRenderer.onSurfaceChanged(gl10, w, h);
+        screenWidth = w;
+        screenHeight = h;
     }
 
     @Override
     public void onDrawFrame(GL10 gl10) {
+        // The other shaders, like GPU texture -> video recorders may have changed the
+        // viewport, so it must be set each time before rendering (unlike in the original example)
+        GLES20.glViewport(0, 0, screenWidth, screenHeight);
         // Clear screen to notify driver it should not load any pixels from previous frame.
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
@@ -88,14 +95,37 @@ public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView
             float[] projmtx = new float[16];
             camera.getProjectionMatrix(projmtx, 0, 0.1f, 100.0f);
 
-            // Send image to native code for recording
+            // TODO: using image only for receiving the size, no need actually read it every frame
             Image image = frame.acquireCameraImage();
-            float focalLength = projmtx[0] * image.getWidth() / 2.f;
-            logExternalImage(image, frameNumber++, 0, focalLength, -1.f, -1.f);
-            // While ARCore requires this, AREngine works without. However, to ensure future
-            // compatibility, it feels safer to call it if AREngine gets more aligned with ARCore
-            // in the future.
-            image.close();
+            int width = -1, height = -1;
+            float focalLength = -1;
+            try {
+                width = image.getWidth();
+                height = image.getHeight();
+                focalLength = projmtx[0] * height / 2.f;
+            } catch (ARFatalException e) {
+                // TODO: find out why this sometimes happens
+                Log.e(TAG, "Failure in AR image read", e);
+                Log.w(TAG, "skipping frame");
+                return;
+            } finally {
+                // While ARCore requires this, AREngine works without. However, to ensure future
+                // compatibility, it feels safer to call it if AREngine gets more aligned with ARCore
+                // in the future.
+                image.close();
+            }
+
+            if (width <= 0 || height <= 0) {
+                Log.e(TAG, "invalid dimenstions in AR image");
+                return;
+            }
+
+            logExternalImage(mBackgroundRenderer.getTextureId(),
+                    frame.getTimestampNs(),
+                    frameNumber++, 0,
+                    new int[]{ width, height },
+                    new float[]{ focalLength, focalLength },
+                    new float[]{ width*0.5f, height*0.5f});
 
             // If not tracking, don't draw 3D objects, show tracking failure reason instead.
             if (camera.getTrackingState() == ARTrackable.TrackingState.PAUSED) {
@@ -141,7 +171,7 @@ public class AREngineActivity extends AlgorithmActivity implements GLSurfaceView
 
             long timeNs = frame.getTimestampNs();
             logExternalPoseMatrix(timeNs, viewmtx);
-            mNativeRenderer.onDrawFrame(timeNs * 1e-9, viewmtx, projmtx);
+            mNativeRenderer.onDrawFrame(timeNs * 1e-9, viewmtx, projmtx, screenWidth, screenHeight);
 
         } catch (Throwable t) {
             // Avoid crashing the application due to unhandled exceptions.

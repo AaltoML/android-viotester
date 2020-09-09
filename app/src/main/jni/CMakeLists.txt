@@ -26,20 +26,24 @@ set(mobile-cv-suite_DIR "${MCS_TARGET_DIR}")
 #find_package(mobile-cv-suite REQUIRED PATHS "${MCS_TARGET_DIR}")
 
 add_library(${target} SHARED
+        camera_worker.cpp
         algorithm_worker.cpp
         algorithm_module.cpp
+        native_camera_session.cpp
         modules/camera_calibrator.cpp
         modules/recorder.cpp
-        opengl/algorithm_renderer.cpp
         opengl/ar_renderer.cpp
         opengl/camera_renderer.cpp
         opengl/ext_ar_renderer.cpp
+        opengl/gpu_camera_adapter.cpp
         opengl/util.cpp)
 
 set(VIO_ANDROID_LIBS
-        "GLESv2"
+        "GLESv3"
         mobile-cv-suite
+        camera2ndk
         mediandk
+        android
         log)
 
 option(USE_CUSTOM_VIO "Compile with a custom VIO module" OFF)
