@@ -106,10 +106,10 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
 
             // Send image to native code for recording
             CameraIntrinsics intrinsics = camera.getImageIntrinsics();
+            long timeNs = frame.getAndroidCameraTimestamp();
             // intrinsics.getFocalLength()[0] is the same, but let's use same method as AREngine version
             logExternalImage(mBackgroundRenderer.getTextureId(),
-                    // TODO: these seem to be completely out-of-sync with sensor timestamps
-                    frame.getTimestamp(),
+                    timeNs,
                     frameNumber++, 0,
                     intrinsics.getImageDimensions(),
                     intrinsics.getFocalLength(),
@@ -154,7 +154,6 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
                 }
             }
 
-            long timeNs = frame.getTimestamp();
             logExternalPoseMatrix(timeNs, viewmtx);
             mNativeRenderer.onDrawFrame(timeNs * 1e-9, viewmtx, projmtx, screenWidth, screenHeight);
 
