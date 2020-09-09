@@ -210,18 +210,6 @@ public class CameraWorker {
         return params;
     }
 
-    private static class FixedTargetChooser implements SizeChooser {
-        private final Size mSize;
-        FixedTargetChooser(Size size) {
-            mSize = size;
-        }
-
-        @Override
-        public Size chooseSize(Size[] availableSizes) {
-            return mSize;
-        }
-    }
-
     private static <T> Size selectBestCameraSize(CameraManager manager, String cameraId, SizeChooser chooser, Class<T> klass) throws CameraAccessException {
         CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
 

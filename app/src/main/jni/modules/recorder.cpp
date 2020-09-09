@@ -1,6 +1,7 @@
 #include <opencv2/core.hpp>
 #include "../algorithm_module.hpp"
 #include "jsonl-recorder/recorder.hpp"
+#include "../opengl/camera_renderer.hpp"
 #include "logging.hpp"
 #include <nlohmann/json.hpp>
 
@@ -8,7 +9,9 @@ struct RecordingModule : public AlgorithmModule {
     bool recordCamera;
     std::unique_ptr<recorder::Recorder> recorder;
     int w, h;
-    bool recordSensors = false;
+    bool recordSensors;
+    bool previewCamera;
+    std::unique_ptr<CameraRenderer> cameraRenderer;
 
     RecordingModule(int width, int height, const json &settings) {
         w = width;
@@ -17,6 +20,7 @@ struct RecordingModule : public AlgorithmModule {
         log_info("recording only mode");
         recordSensors = settings.at("recordSensors").get<bool>();
         recordCamera = settings.at("recordCamera").get<bool>();
+        previewCamera = settings.at("previewCamera").get<bool>();
 
         auto recName = settings.at("recordingFileName");
         auto videoRecName = settings.at("videoRecordingFileName");
@@ -39,8 +43,8 @@ struct RecordingModule : public AlgorithmModule {
                             int cameraInd, double focalLength, double px, double py) final {
         if (recordCamera) {
             assert(colorFrame != nullptr);
-            // TODO
-            //defaultOpenGLRenderer::setBgraCameraData(colorFrame->cols, colorFrame->rows, colorFrame->data);
+            // TODO: render GPU texture directly
+            cameraRenderer->setTextureData(colorFrame->cols, colorFrame->rows, colorFrame->data, CameraRenderer::AspectFixMethod::LETTERBOX);
             recorder->addFrame(recorder::FrameData {
                     .t = t,
                     .cameraInd = cameraInd,
@@ -53,12 +57,18 @@ struct RecordingModule : public AlgorithmModule {
         return {};
     }
 
-    bool setupRendering(cv::Mat &out) {
+    bool setupRendering(int visuWidth, int visuHeight) final {
         if (recordCamera) {
-            out = cv::Mat(h, w, CV_8UC4);
+            cameraRenderer = CameraRenderer::build(visuWidth, visuHeight);
             return true;
         }
         return false;
+    }
+
+    void render() final {
+        if (previewCamera && cameraRenderer) {
+            cameraRenderer->render();
+        }
     }
 
     void addGps(double t, const AlgorithmModule::Gps &gps) final {

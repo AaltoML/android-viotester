@@ -140,8 +140,8 @@ public:
                         +1, +1, 0,
                 };
             }
-            log_debug("screen %dx%d, camera %dx%d, window %dx%d, scale (%g, %g)",
-                    width, height, texWidth, texHeight, activeWidth, activeHeight, relXScale, relYScale);
+            // log_debug("screen %dx%d, camera %dx%d, window %dx%d, scale (%g, %g)",
+            //        width, height, texWidth, texHeight, activeWidth, activeHeight, relXScale, relYScale);
         } else {
             assert(texWidth == textureWidth && texHeight == textureHeight);
         }

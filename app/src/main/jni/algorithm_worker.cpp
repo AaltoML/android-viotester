@@ -27,10 +27,11 @@ namespace {
         int cameraInd;
     } pendingFrame;
 
+    bool recordExternalPoses = false;
     bool visualizationEnabled = false;
     int frameStride = 1;
     int frameNumber = 0;
-    std::mutex mutex;
+    std::mutex algorithmMutex, frameMutex;
 
     std::unique_ptr<GpuCameraAdapter> gpuAdapter;
     std::unique_ptr<GpuCameraAdapter::TextureAdapter> rgbaTexture, grayTexture;
@@ -56,17 +57,83 @@ namespace {
     };
 
     Clock doubleClock;
+
+    void renderToPendingFrame(long timeNanos, int cameraInd, float focalLength, float px, float py) {
+        std::lock_guard<std::mutex> lock(frameMutex);
+        if (!gpuAdapter || !grayTexture) {
+            log_warn("render after teardown: skipping");
+            return;
+        }
+
+        grayTexture->render();
+        grayTexture->readPixels(grayFrame.data);
+
+        if (rgbaTexture) {
+            assert(!colorFrame.empty());
+            rgbaTexture->render();
+            rgbaTexture->readPixels(colorFrame.data);
+        }
+
+        // for debugging
+        //cv::cvtColor(colorFrame, grayFrame, cv::COLOR_BGRA2GRAY);
+        //cv::cvtColor(grayFrame, colorFrame, cv::COLOR_GRAY2BGRA);
+
+        colorFrame.copyTo(pendingFrame.colorFrame);
+        grayFrame.copyTo(pendingFrame.grayFrame);
+        pendingFrame.timeNanos = timeNanos;
+        pendingFrame.focalLength = focalLength;
+        pendingFrame.ppx = px;
+        pendingFrame.ppy = py;
+        pendingFrame.pending = true;
+        pendingFrame.cameraInd = cameraInd;
+    }
+
+    void consumePendingFrame() {
+        // note: this should work fine if addFrame is a light-weight queuing operation.
+        // if not, it might make sense to copy the image data to a third buffer first
+        std::lock_guard<std::mutex> lock(frameMutex);
+        if (pendingFrame.pending) {
+            pendingFrame.pending = false;
+            algorithm->addFrame(
+                    doubleClock.update(pendingFrame.timeNanos), grayFrame, visualizationEnabled ? &colorFrame : nullptr,
+                    pendingFrame.cameraInd, pendingFrame.focalLength, pendingFrame.ppx, pendingFrame.ppy);
+        }
+    }
 }
 
 extern "C" {
 
+JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_nativeStop(
+        JNIEnv *env, jobject) {
+    log_debug("nativeStop");
+    {
+        std::lock_guard<std::mutex> lock(algorithmMutex);
+        algorithm.reset();
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(frameMutex);
+        rgbaTexture.reset();
+        grayTexture.reset();
+        gpuAdapter.reset();
+        pendingFrame.pending = false;
+    }
+}
+
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_configureVisualization(
         JNIEnv *env, jobject,
         jint visuWidth, jint visuHeight) {
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard<std::mutex> lock(algorithmMutex);
+    if (!algorithm) {
+        // happens on external AR. TODO: hacky
+        log_warn("no algorithm, ignoring configureVisualization");
+        return;
+    }
+
     visualizationEnabled = algorithm->setupRendering(visuWidth, visuHeight);
     if (visualizationEnabled) {
         assert(gpuAdapter);
+        std::lock_guard<std::mutex> frameLock(frameMutex);
         rgbaTexture = gpuAdapter->createTextureAdapter(GpuCameraAdapter::TextureAdapter::Type::BGRA);
         log_debug("screen size size set to %dx%d", visuWidth, visuHeight);
     }
@@ -78,16 +145,18 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_configure(
         jint heightJint,
         jint textureId,
         jint frameStrideJint,
+        jboolean recordExternalPosesJboolean,
         jstring moduleNameJava,
         jstring moduleSettingsJson) {
-    std::lock_guard<std::mutex> lock(mutex);
-
+    {
+    std::lock_guard<std::mutex> lock(algorithmMutex);
     algorithm.reset();
     doubleClock = {};
 
     width = static_cast<int>(widthJint);
     height = static_cast<int>(heightJint);
     frameStride = static_cast<int>(frameStrideJint);
+    recordExternalPoses = recordExternalPosesJboolean;
 
     assert(width >= height);
 
@@ -101,13 +170,18 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_configure(
         settingsJsonPtr = &settingsJson;
     }
     algorithm = AlgorithmModule::build(width, height, moduleName, settingsJsonPtr);
+    }
 
+    {
+    std::lock_guard<std::mutex> lock(frameMutex);
     gpuAdapter = GpuCameraAdapter::create(width, height, textureId);
-    grayTexture = gpuAdapter->createTextureAdapter(GpuCameraAdapter::TextureAdapter::Type::GRAY_COMPRESSED);
+    grayTexture = gpuAdapter->createTextureAdapter(
+            GpuCameraAdapter::TextureAdapter::Type::GRAY_COMPRESSED);
 
     log_debug("setting up color frames");
     colorFrame = cv::Mat(cv::Size(width, height), CV_8UC4);
     grayFrame = cv::Mat(cv::Size(width, height), CV_8UC1);
+    }
 }
 
 JNIEXPORT jboolean JNICALL Java_org_example_viotester_AlgorithmWorker_processFrame(
@@ -118,79 +192,51 @@ JNIEXPORT jboolean JNICALL Java_org_example_viotester_AlgorithmWorker_processFra
         jfloat px,
         jfloat py) {
 
-    assert(grayTexture);
     if ((frameNumber++ % frameStride) != 0) return false;
 
-    grayTexture->render();
-    grayTexture->readPixels(grayFrame.data);
-
-    if (rgbaTexture) {
-        rgbaTexture->render();
-        rgbaTexture->readPixels(colorFrame.data);
-    }
-
-    // for debugging
-    //cv::cvtColor(colorFrame, grayFrame, cv::COLOR_BGRA2GRAY);
-    //cv::cvtColor(grayFrame, colorFrame, cv::COLOR_GRAY2BGRA);
-
-    std::lock_guard<std::mutex> lock(mutex);
-    colorFrame.copyTo(pendingFrame.colorFrame);
-    grayFrame.copyTo(pendingFrame.grayFrame);
-    pendingFrame.timeNanos = timeNanos;
-    pendingFrame.focalLength = focalLength;
-    pendingFrame.ppx = px;
-    pendingFrame.ppy = py;
-    pendingFrame.pending = true;
-    pendingFrame.cameraInd = cameraInd;
-
+    renderToPendingFrame(timeNanos, cameraInd, focalLength, px, py);
     return true;
 }
 
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processGyroSample(
         JNIEnv*, jobject,
         jlong timeNanos, jfloat x, jfloat y, jfloat z) {
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard<std::mutex> lock(algorithmMutex);
     if (algorithm) {
         algorithm->addGyro(doubleClock.update(timeNanos), { x, y, z });
-
-        if (pendingFrame.pending) {
-            pendingFrame.pending = false;
-            algorithm->addFrame(
-                    doubleClock.update(pendingFrame.timeNanos), grayFrame, visualizationEnabled ? &colorFrame : nullptr,
-                    pendingFrame.cameraInd, pendingFrame.focalLength, pendingFrame.ppx, pendingFrame.ppy);
-        }
+        consumePendingFrame();
     }
 }
 
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processAccSample(
         JNIEnv*, jobject,
         jlong timeNanos, jfloat x, jfloat y, jfloat z) {
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard<std::mutex> lock(algorithmMutex);
     if (algorithm) algorithm->addAcc(doubleClock.update(timeNanos), { x, y, z });
 }
 
 JNIEXPORT jstring JNICALL Java_org_example_viotester_AlgorithmWorker_getStatsString(
         JNIEnv *env, jobject) {
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard<std::mutex> lock(algorithmMutex);
     if (algorithm) return env->NewStringUTF(algorithm->status().c_str());
     return nullptr;
 }
 
 JNIEXPORT jint JNICALL Java_org_example_viotester_AlgorithmWorker_getTrackingStatus(
         JNIEnv *env, jobject) {
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard<std::mutex> lock(algorithmMutex);
     if (algorithm) return algorithm->trackingStatus();
     return -1;
 }
 
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_drawVisualization(JNIEnv *, jobject) {
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard<std::mutex> lock(algorithmMutex);
     if (!algorithm) return;
     algorithm->render();
 }
 
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processGpsLocation(JNIEnv *, jobject, jlong timeNanos, jdouble lat, jdouble lon, jdouble alt, jfloat acc) {
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard<std::mutex> lock(algorithmMutex);
     if (!algorithm) return;
     algorithm->addGps(doubleClock.update(timeNanos), AlgorithmModule::Gps {
             .latitude = lat,
@@ -203,7 +249,9 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processGpsLoca
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_writeInfoFile(
         JNIEnv* env, jobject,
         jstring mode, jstring device) {
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard<std::mutex> lock(algorithmMutex);
+    if (!algorithm) return;
+
     std::string infoFile = !settingsJson.at("infoFileName").is_null() ? settingsJson.at("infoFileName") : "";
     if (infoFile.empty())
         return;
@@ -224,7 +272,9 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_writeInfoFile(
 
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_writeParamsFile(
         JNIEnv*, jobject) {
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard<std::mutex> lock(algorithmMutex);
+    if (!algorithm) return;
+
     std::string paramsFile = !settingsJson.at("parametersFileName").is_null() ? settingsJson.at("parametersFileName") : "";
     if (paramsFile.empty())
         return;
@@ -232,9 +282,20 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_writeParamsFil
     fileOutput << "imuToCameraMatrix -0,-1,0,-1,0,0,0,0,-1;" << std::endl;
 }
 
+JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processExternalImage(JNIEnv *env, jobject thiz,
+        jlong timeNs, jlong frameNumber, jint cameraInd, jfloat focalLength, jfloat ppx, jfloat ppy) {
+    renderToPendingFrame(timeNs, cameraInd, focalLength, ppx, ppy);
+}
+
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_recordPoseMatrix(JNIEnv *env, jobject thiz, jlong timeNs, jfloatArray pose, jstring tag) {
     (void)thiz;
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard<std::mutex> lock(algorithmMutex);
+    if (!algorithm) return;
+
+    consumePendingFrame();
+
+    if (!recordExternalPoses) return;
+
     auto *poseArr = env->GetFloatArrayElements(pose, nullptr);
     Eigen::Matrix4f viewMatrix = Eigen::Map<Eigen::Matrix4f>(poseArr);
     env->ReleaseFloatArrayElements(pose, poseArr, JNI_ABORT);
@@ -244,6 +305,7 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_recordPoseMatr
     const Eigen::Matrix3f R = viewMatrix.block<3, 3>(0, 0);
     const Eigen::Vector3f p = -R.transpose() * viewMatrix.block<3, 1>(0, 3);
     const Eigen::Quaternionf q(R);
+
 
     algorithm->addJsonData(
             AlgorithmModule::json {

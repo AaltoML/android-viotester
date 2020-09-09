@@ -6,11 +6,9 @@ import android.content.SharedPreferences;
 import android.hardware.SensorManager;
 import android.hardware.camera2.CameraManager;
 import android.location.LocationManager;
-import android.media.Image;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Size;
@@ -41,8 +39,6 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
 
     private DataRecorder mDataRecorder;
     protected AlgorithmWorker.Settings mAlgoWorkerSettings;
-    private final HandlerThread mHandlerThread;
-    private final Handler mNativeHandler; // All native access should go through this
 
     // adjustable flags for subclasses
     protected boolean mDirectCameraPreview = false;
@@ -53,22 +49,18 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
 
     protected boolean mUseCameraWorker = false;
 
-    public AlgorithmActivity() {
-        mHandlerThread = new HandlerThread("NativeHandler", Thread.MAX_PRIORITY);
-        mHandlerThread.start();
-        mNativeHandler = new Handler(mHandlerThread.getLooper());
-    }
-
     protected void adjustSettings(AlgorithmWorker.Settings settings) {}
 
     protected void logExternalPoseMatrix(long timeNs, float[] viewMtx) {
         mAlgorithmWorker.logExternalPoseMatrix(timeNs, viewMtx, mRecordPrefix);
     }
 
-    protected void logExternalImage(Image image, long frameNumber, int cameraInd,
-                                    float focalLength, float px, float py) {
-        // TODO:
-        //mAlgorithmWorker.onImage(image, frameNumber, cameraInd, focalLength, px, py);
+    protected void logExternalImage(int textureId, long timeNanos, long frameNumber, int cameraInd,
+                                    int[] dimensions, float[] focalLength, float[] principalPoint) {
+        mAlgorithmWorker.logExternalImage(textureId, timeNanos, frameNumber, cameraInd,
+                dimensions[0], dimensions[1],
+                0.5f * (focalLength[0] + focalLength[1]),
+                principalPoint[0], principalPoint[1]);
     }
 
     @Override
@@ -80,7 +72,7 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
     @Override
     public void onSurfaceChanged(GL10 gl10, int w, int h) {
         Log.d(TAG, "onSurfaceChanged");
-        mAlgorithmWorker.configureVisualization(w, h);
+        mAlgorithmWorker.onSurfaceChanged(w, h);
     }
 
     @Override
@@ -218,7 +210,7 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
                         .putBoolean("has_auto_focal_length", true)
                         .apply();
             }
-        }, mNativeHandler, mRecordPrefix);
+        }, mRecordPrefix);
 
         CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         if (cameraManager == null) throw new RuntimeException("could not access CameraManager");
@@ -309,6 +301,7 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
         s.recordCamera =  !trackingMode || prefs.getBoolean("record_tracking_sensors_and_video", false);
         s.recordPoses = mDataCollectionMode || (trackingMode && prefs.getBoolean("record_tracking_poses", false));
         s.recordSensors = mDataCollectionMode || (trackingMode && prefs.getBoolean("record_tracking_sensors_and_video", false));
+        s.previewCamera = mDataCollectionMode;
         final boolean recordingSomething = mDataCollectionMode || s.recordPoses;
         s.recordGps = recordingSomething && prefs.getBoolean("record_gps", false);
         s.recordWiFiLocations = recordingSomething && prefs.getBoolean("record_google_wifi_locations", false);
@@ -343,13 +336,7 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
         super.onDestroy();
-        mHandlerThread.quitSafely();
         if (mCameraWorker != null) mCameraWorker.stop();
-        try {
-            mHandlerThread.join();
-        } catch (InterruptedException e) {
-            Log.e(TAG, "Failed to join native access handler thread", e);
-        }
         if (mDataRecorder != null) {
             mDataRecorder.flush();
             mDataRecorder = null;

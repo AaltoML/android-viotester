@@ -10,6 +10,7 @@ import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.SystemClock;
 import android.util.Log;
 import android.util.Size;
@@ -64,6 +65,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         public boolean recordCamera;
         public boolean recordSensors;
         public boolean recordPoses;
+        public boolean previewCamera;
 
         public int screenWidth;
         public int screenHeight;
@@ -97,10 +99,15 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         }
 
         void start() {
+            try {
             if (mSettings.recordGps)
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
             if (mSettings.recordWiFiLocations)
                 locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
+            } catch (SecurityException e) {
+                // should only happen if permissions have been modified after app launch
+                throw new RuntimeException(e);
+            }
         }
 
         void stop() {
@@ -138,7 +145,8 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
 
     private final SensorManager mSensorManager;
     private final List<Sensor> mSensors;
-    private final Handler mNativeHandler;
+    private HandlerThread mHandlerThread;
+    private Handler mNativeHandler;
     private final Settings mSettings;
     private final Listener mListener;
     private final GpsListener mGpsListener;
@@ -149,6 +157,8 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     private final FrequencyMonitor mProcessedFpsMonitor;
 
     private CameraWorker.CameraParameters mCameraParameters = null;
+    private int mScreenWidth = -1, mScreenHeight = -1;
+    private boolean mExternalInitialized = false;
 
     //private final static int GYRO_SENSOR = Sensor.TYPE_GYROSCOPE_UNCALIBRATED;
     private final int mGyroSensor;
@@ -159,15 +169,12 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
             LocationManager locationManager,
             Settings settings,
             Listener listener,
-            Handler handler,
             String mode) {
         mSensorManager = sensorManager;
 
         mSettings = settings;
         mListener = listener;
         mMode = mode;
-
-        mNativeHandler = handler;
 
         mSensors = new ArrayList<>();
         List<Integer> sensorTypes = new ArrayList<>();
@@ -221,6 +228,11 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
 
     public void start() {
         Log.d(TAG, "start");
+
+        mHandlerThread = new HandlerThread("NativeHandler", Thread.MAX_PRIORITY);
+        mHandlerThread.start();
+        mNativeHandler = new Handler(mHandlerThread.getLooper());
+
         // always record sensors at max rate when
         final int sensorDelay = SensorManager.SENSOR_DELAY_FASTEST;
         for (Sensor sensor : mSensors) {
@@ -245,6 +257,15 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         mGyroMonitor.stop();
         mProcessedFpsMonitor.stop();
         mGpsListener.stop();
+        nativeStop();
+        mExternalInitialized = false;
+
+        mHandlerThread.quitSafely();
+        try {
+            mHandlerThread.join();
+        } catch (InterruptedException e) {
+            Log.e(TAG, "Failed to join native access handler thread", e);
+        }
     }
 
     private String jsonSettings() {
@@ -292,7 +313,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         mSettings.principalPointX = mCameraParameters.principalPointX;
         mSettings.principalPointY = mCameraParameters.principalPointY;
 
-        configure(width, height, textureId, mSettings.halfFps ? 2 : 1, mSettings.moduleName, jsonSettings());
+        configure(width, height, textureId, mSettings.halfFps ? 2 : 1, false, mSettings.moduleName, jsonSettings());
 
         if (mSettings.parametersFileName != null) {
             writeParamsFile();
@@ -323,6 +344,12 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         }
     }
 
+    public void onSurfaceChanged(int w, int h) {
+        mScreenWidth = w;
+        mScreenHeight = h;
+        configureVisualization(w, h);
+    }
+
     @Override
     public void onDraw() {
         drawVisualization();
@@ -339,12 +366,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
                     // Event is reused, extract values we want
                     final long time = event.timestamp;
                     final float[] measurement = {event.values[0], event.values[1], event.values[2]};
-                    mNativeHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            processAccSample(time, measurement[0], measurement[1], measurement[2]);
-                        }
-                    });
+                    processAccSample(time, measurement[0], measurement[1], measurement[2]);
                 }
                 break;
             case Sensor.TYPE_GYROSCOPE:
@@ -354,12 +376,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
                     // Event is reused, extract values we want
                     final long time = event.timestamp;
                     final float[] measurement = {event.values[0], event.values[1], event.values[2]};
-                    mNativeHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            processGyroSample(time, measurement[0], measurement[1], measurement[2]);
-                        }
-                    });
+                    processGyroSample(time, measurement[0], measurement[1], measurement[2]);
                 }
                 break;
             default:
@@ -373,18 +390,31 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     }
 
     void logExternalPoseMatrix(final long timeNs, final float[] viewMtx, final String tag) {
-        if (mSettings.recordPoses) {
-            mNativeHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    recordPoseMatrix(timeNs, viewMtx, tag);
-                }
-            });
-        }
+        // beneficial to process this in non-GL thread, hence posting to native handler
+        mNativeHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                recordPoseMatrix(timeNs, viewMtx, tag);
+            }
+        });
     }
 
-    public native void configureVisualization(int width, int height);
-    private native void configure(int width, int height, int textureId, int frameStride, String moduleName, String settingsJson);
+    public void logExternalImage(int textureId, long timeNanos, long frameNumber, int cameraInd,
+                                        int width, int height, float focalLength, float ppx, float ppy) {
+        if (!mExternalInitialized) {
+            configure(width, height, textureId, 1, mSettings.recordPoses, mSettings.moduleName, jsonSettings());
+            configureVisualization(mScreenWidth, mScreenHeight);
+            mExternalInitialized = true;
+        }
+
+        processExternalImage(timeNanos, frameNumber, cameraInd, focalLength, ppx, ppy);
+    }
+
+
+    public native void processExternalImage(long timeNanos, long frameNumber, int cameraInd, float focalLength, float ppx, float ppy);
+
+    private native void configureVisualization(int width, int height);
+    private native void configure(int width, int height, int textureId, int frameStride, boolean recordExternalPoses, String moduleName, String settingsJson);
     private native boolean processFrame(long timeNanos, int cameraInd, float focalLength, float px, float py);
 
     private native void drawVisualization();
@@ -396,4 +426,5 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     private native int getTrackingStatus();
     private native void writeInfoFile(String mode, String device);
     private native void writeParamsFile();
+    private native void nativeStop();
 }
