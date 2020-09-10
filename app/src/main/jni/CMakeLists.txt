@@ -14,7 +14,7 @@ project(${target} CXX)
 
 set(ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../..")
 
-set(MCS_VERSION 1.0.0)
+set(MCS_VERSION 1.1.1)
 set(MCS_TARGET_DIR ${ROOT_DIR}/app/.cxx/mobile-cv-suite-${MCS_VERSION})
 if(NOT EXISTS ${MCS_TARGET_DIR})
     set(MCS_ARCHIVE_FN ${CMAKE_CURRENT_BINARY_DIR}/mobile-cv-suite.tar-${MCS_VERSION}.gz)
