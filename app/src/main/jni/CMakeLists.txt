@@ -29,6 +29,7 @@ add_library(${target} SHARED
         camera_worker.cpp
         algorithm_worker.cpp
         algorithm_module.cpp
+        algorithm_module_wrappers.cpp
         native_camera_session.cpp
         modules/camera_calibrator.cpp
         modules/recorder.cpp

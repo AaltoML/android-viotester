@@ -313,7 +313,8 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         mSettings.principalPointX = mCameraParameters.principalPointX;
         mSettings.principalPointY = mCameraParameters.principalPointY;
 
-        configure(width, height, textureId, mSettings.halfFps ? 2 : 1, false, mSettings.moduleName, jsonSettings());
+        long t0 = SystemClock.elapsedRealtimeNanos(); // this should be same as the sensor clock
+        configure(t0, width, height, textureId, mSettings.halfFps ? 2 : 1, false, mSettings.moduleName, jsonSettings());
 
         if (mSettings.parametersFileName != null) {
             writeParamsFile();
@@ -402,7 +403,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     public void logExternalImage(int textureId, long timeNanos, long frameNumber, int cameraInd,
                                         int width, int height, float focalLength, float ppx, float ppy) {
         if (!mExternalInitialized) {
-            configure(width, height, textureId, 1, mSettings.recordPoses, mSettings.moduleName, jsonSettings());
+            configure(timeNanos, width, height, textureId, 1, mSettings.recordPoses, mSettings.moduleName, jsonSettings());
             configureVisualization(mScreenWidth, mScreenHeight);
             mExternalInitialized = true;
         }
@@ -410,11 +411,10 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         processExternalImage(timeNanos, frameNumber, cameraInd, focalLength, ppx, ppy);
     }
 
-
     public native void processExternalImage(long timeNanos, long frameNumber, int cameraInd, float focalLength, float ppx, float ppy);
 
     private native void configureVisualization(int width, int height);
-    private native void configure(int width, int height, int textureId, int frameStride, boolean recordExternalPoses, String moduleName, String settingsJson);
+    private native void configure(long timeNanos, int width, int height, int textureId, int frameStride, boolean recordExternalPoses, String moduleName, String settingsJson);
     private native boolean processFrame(long timeNanos, int cameraInd, float focalLength, float px, float py);
 
     private native void drawVisualization();

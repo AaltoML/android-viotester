@@ -6,11 +6,10 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
 #include <algorithm_module.hpp>
-#include <opengl/camera_renderer.hpp>
 #include "logging.hpp" // logger
 
 namespace {
-class CameraCalibrator : public AlgorithmModule {
+class CameraCalibrator : public CpuAlgorithmModule {
 private:
     const cv::Size patternSize;
 
@@ -20,9 +19,7 @@ private:
     std::vector<cv::Point2f> centers;
     std::vector<std::vector<cv::Point3f>> objectPoints;
 
-    cv::Mat colorMat;
-    cv::Mat visualizationMat;
-    std::unique_ptr<CameraRenderer> renderer;
+    cv::Mat colorMat, visualizationMat;
 
     // outputs
     cv::Mat cameraMatrix;
@@ -59,7 +56,7 @@ private:
     }
 
 public:
-    CameraCalibrator(int w, int h) : patternSize(4, 11)
+    CameraCalibrator(int textureId, int w, int h) : CpuAlgorithmModule(textureId, w, h), patternSize(4, 11)
     {
         colorMat = cv::Mat(h, w, CV_8UC4);
         const float squareSize = 1.0;
@@ -72,8 +69,11 @@ public:
         log_debug("initialized camera calibrator");
     }
 
-    Pose addFrame(double t, const cv::Mat &grayMat, cv::Mat *rgbaMat,
-                  int cameraInd, double focalLength, double px, double py) final {
+    void addFrame(double t, const cv::Mat &grayMat, cv::Mat *rgbaMat,
+                  int cameraInd, double focalLength, double px, double py,
+                  cv::Mat &outputColorFrame) final {
+        (void)cameraInd; (void)focalLength; (void)px; (void)py;
+
         assert(rgbaMat != nullptr);
         assert(!colorMat.empty());
         rgbaMat->copyTo(colorMat);
@@ -95,25 +95,16 @@ public:
             centers.clear();
         }
 
-        return {};
-    }
+        if (visualizationEnabled) {
+            assert(!colorMat.empty());
 
-    bool setupRendering(int w, int h) final {
-        renderer = CameraRenderer::build(w, h);
-        visualizationMat = colorMat.clone();
-        return true;
-    }
-
-    void render() final {
-        assert(!colorMat.empty());
-
-        constexpr int RADIUS = 10;
-        colorMat.copyTo(visualizationMat);
-        for (const auto &c : centers) {
-            cv::circle(visualizationMat, c, RADIUS, cv::Scalar(0xff, 0x0, 0xff));
+            constexpr int RADIUS = 10;
+            colorMat.copyTo(visualizationMat);
+            for (const auto &c : centers) {
+                cv::circle(visualizationMat, c, RADIUS, cv::Scalar(0xff, 0x0, 0xff));
+            }
+            outputColorFrame = visualizationMat;
         }
-        renderer->setTextureData(visualizationMat.cols, visualizationMat.rows, visualizationMat.data, CameraRenderer::AspectFixMethod::CROP);
-        renderer->render();
     }
 
     std::string status() const final {
@@ -149,6 +140,6 @@ public:
 };
 }
 
-std::unique_ptr<AlgorithmModule> buildCameraCalibrator(int width, int heigth) {
-    return std::unique_ptr<AlgorithmModule>(new CameraCalibrator(width, heigth));
+std::unique_ptr<AlgorithmModule> buildCameraCalibrator(int textureId, int width, int heigth) {
+    return AlgorithmModule::makeThreadSafe(new CameraCalibrator(textureId, width, heigth));
 }
