@@ -97,7 +97,7 @@ android {
             versionNameSuffix "-arcore-arengine"
             dependencies {
                 implementation 'com.google.ar:core:1.14.0'
-                implementation 'com.huawei.hms:arenginesdk:2.12.0.1'
+                implementation 'com.huawei.hms:arenginesdk:2.13.0.4'
             }
             repositories {
                 maven {
