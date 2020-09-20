@@ -1,5 +1,6 @@
 apply plugin: 'com.android.application'
-apply plugin: 'io.fabric'
+apply plugin: 'com.google.gms.google-services'
+apply plugin: 'com.google.firebase.crashlytics'
 
 android {
     compileSdkVersion 29
@@ -32,15 +33,14 @@ android {
     }
     dependencies {
         // needed by permission helper
-        implementation 'androidx.appcompat:appcompat:1.1.0'
-        implementation "com.google.android.material:material:1.2.0"
-        implementation 'androidx.preference:preference:1.1.0'
-        implementation 'com.google.firebase:firebase-analytics:17.2.0'
-        implementation 'com.crashlytics.sdk.android:crashlytics:2.10.1'
+        implementation 'androidx.appcompat:appcompat:1.2.0'
+        implementation "com.google.android.material:material:1.2.1"
+        implementation 'androidx.preference:preference:1.1.1'
+        implementation 'com.google.firebase:firebase-crashlytics:17.2.1'
         implementation 'org.kamranzafar:jtar:2.2'
         implementation 'org.codehaus.jackson:jackson-mapper-asl:1.9.13'
         // may be needed or ARCore + Location recording may not work... which is VERY SUSPICIOUS
-        implementation 'com.google.android.gms:play-services-location:16.0.0'
+        implementation 'com.google.android.gms:play-services-location:17.0.0'
 
     }
     externalNativeBuild {
@@ -79,7 +79,7 @@ android {
             versionNameSuffix "-arcore"
             dependencies {
                 // ARCore library
-                implementation 'com.google.ar:core:1.14.0'
+                implementation 'com.google.ar:core:1.19.0'
             }
         }
         arengine {
@@ -87,7 +87,7 @@ android {
             versionNameSuffix "-arengine"
             dependencies {
                 // AREngine from Huawei
-                implementation 'com.huawei.hms:arenginesdk:2.12.0.1'
+                implementation 'com.huawei.hms:arenginesdk:2.13.0.4'
             }
             repositories {
                 maven {
@@ -99,7 +99,7 @@ android {
             dimension "mode"
             versionNameSuffix "-arcore-arengine"
             dependencies {
-                implementation 'com.google.ar:core:1.14.0'
+                implementation 'com.google.ar:core:1.19.0'
                 implementation 'com.huawei.hms:arenginesdk:2.13.0.4'
             }
             repositories {
