@@ -22,3 +22,8 @@ app/google-services.json
 # the custom module to be benchmarked against ARCore/AREngine
 custom-vio/
 custom-vio
+
+# mobile-cv-suite can be symlinked to the root dir to use it instead of the pre-built version
+# this allows testing local modifications to mobile-cv-suite
+mobile-cv-suite/
+mobile-cv-suite
