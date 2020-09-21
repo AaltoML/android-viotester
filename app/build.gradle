@@ -21,7 +21,6 @@ android {
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_TOOLCHAIN=clang",
-                        "-DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo",
                         "-DANDROID_STL=c++_static",
                         "-DCMAKE_VERBOSE_MAKEFILE=ON",
                         "-DUSE_CUSTOM_VIO=${hasCustomVio ? 'ON' : 'OFF'}"
@@ -74,48 +73,64 @@ android {
                 }
             }
         }
-        arcore {
-            dimension "mode"
-            versionNameSuffix "-arcore"
-            dependencies {
-                // ARCore library
-                implementation 'com.google.ar:core:1.19.0'
-            }
-        }
-        arengine {
-            dimension "mode"
-            versionNameSuffix "-arengine"
-            dependencies {
-                // AREngine from Huawei
-                implementation 'com.huawei.hms:arenginesdk:2.13.0.4'
-            }
-            repositories {
-                maven {
-                    url 'https://developer.huawei.com/repo/' // AREngine from Huawei
+        // Note that native libs from ALL build variants end up in your APK,
+        // at least in the time of writing so the build variants need to be removed
+        // you want to avoid that. Android Gradle Plugin is a moving target so the situation may
+        // be different in a couple of months (check again if this is needed after some time)
+        if (!project.hasProperty('STRIP_EXTERNAL_AR')) {
+            arcore {
+                dimension "mode"
+                versionNameSuffix "-arcore"
+                dependencies {
+                    // ARCore library
+                    implementation 'com.google.ar:core:1.19.0'
                 }
             }
-        }
-        arcoreandengine {
-            dimension "mode"
-            versionNameSuffix "-arcore-arengine"
-            dependencies {
-                implementation 'com.google.ar:core:1.19.0'
-                implementation 'com.huawei.hms:arenginesdk:2.13.0.4'
+            arengine {
+                dimension "mode"
+                versionNameSuffix "-arengine"
+                dependencies {
+                    // AREngine from Huawei
+                    implementation 'com.huawei.hms:arenginesdk:2.13.0.4'
+                }
+                repositories {
+                    maven {
+                        url 'https://developer.huawei.com/repo/' // AREngine from Huawei
+                    }
+                }
             }
-            repositories {
-                maven {
-                    url 'https://developer.huawei.com/repo/' // AREngine from Huawei
+            arcoreandengine {
+                dimension "mode"
+                versionNameSuffix "-arcore-arengine"
+                dependencies {
+                    implementation 'com.google.ar:core:1.19.0'
+                    implementation 'com.huawei.hms:arenginesdk:2.13.0.4'
+                }
+                repositories {
+                    maven {
+                        url 'https://developer.huawei.com/repo/' // AREngine from Huawei
+                    }
                 }
             }
         }
         research {
             dimension "type"
             buildConfigField "boolean", "DEMO_MODE", "false"
+            externalNativeBuild {
+                cmake {
+                    arguments += "-DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo"
+                }
+            }
         }
         demo {
             dimension "type"
             buildConfigField "boolean", "DEMO_MODE", "true"
             versionNameSuffix "-demo"
+            externalNativeBuild {
+                cmake {
+                    arguments += "-DCMAKE_BUILD_TYPE:STRING=Release"
+                }
+            }
             //applicationIdSuffix ".demo"
         }
 
