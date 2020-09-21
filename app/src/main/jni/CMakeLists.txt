@@ -14,13 +14,19 @@ project(${target} CXX)
 
 set(ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../..")
 
-set(MCS_VERSION 1.1.1)
-set(MCS_TARGET_DIR ${ROOT_DIR}/app/.cxx/mobile-cv-suite-${MCS_VERSION})
-if(NOT EXISTS ${MCS_TARGET_DIR})
-    set(MCS_ARCHIVE_FN ${CMAKE_CURRENT_BINARY_DIR}/mobile-cv-suite.tar-${MCS_VERSION}.gz)
-    file(DOWNLOAD https://github.com/AaltoML/mobile-cv-suite/releases/download/${MCS_VERSION}/mobile-cv-suite.tar.gz ${MCS_ARCHIVE_FN} SHOW_PROGRESS)
-    file(MAKE_DIRECTORY ${MCS_TARGET_DIR})
-    execute_process(COMMAND ${CMAKE_COMMAND} -E tar -xf ${MCS_ARCHIVE_FN} WORKING_DIRECTORY ${MCS_TARGET_DIR})
+if(EXISTS ${ROOT_DIR}/mobile-cv-suite)
+    # if mobile-cv-suite exists in the root directory, use it
+    set(MCS_TARGET_DIR ${ROOT_DIR}/mobile-cv-suite)
+else()
+    # otherwise download a pre-built release from Github
+    set(MCS_VERSION 1.2.0)
+    set(MCS_TARGET_DIR ${ROOT_DIR}/app/.cxx/mobile-cv-suite-${MCS_VERSION})
+    if(NOT EXISTS ${MCS_TARGET_DIR})
+        set(MCS_ARCHIVE_FN ${CMAKE_CURRENT_BINARY_DIR}/mobile-cv-suite.tar-${MCS_VERSION}.gz)
+        file(DOWNLOAD https://github.com/AaltoML/mobile-cv-suite/releases/download/${MCS_VERSION}/mobile-cv-suite.tar.gz ${MCS_ARCHIVE_FN} SHOW_PROGRESS)
+        file(MAKE_DIRECTORY ${MCS_TARGET_DIR})
+        execute_process(COMMAND ${CMAKE_COMMAND} -E tar -xf ${MCS_ARCHIVE_FN} WORKING_DIRECTORY ${MCS_TARGET_DIR})
+    endif()
 endif()
 set(mobile-cv-suite_DIR "${MCS_TARGET_DIR}")
 #find_package(mobile-cv-suite REQUIRED PATHS "${MCS_TARGET_DIR}")
@@ -41,7 +47,7 @@ add_library(${target} SHARED
 
 set(VIO_ANDROID_LIBS
         "GLESv3"
-        mobile-cv-suite
+        mobile-cv-suite::core
         camera2ndk
         mediandk
         android
