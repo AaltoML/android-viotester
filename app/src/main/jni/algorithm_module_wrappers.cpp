@@ -14,6 +14,12 @@ struct CpuAlgorithmModule::impl {
     std::unique_ptr<CameraRenderer> renderer;
 };
 
+void GpuCameraAdapter::readChecked(GpuCameraAdapter::TextureAdapter &adapter, cv::Mat &mat) {
+    adapter.render();
+    assert(adapter.readPixelsSize() == mat.total() * mat.elemSize());
+    adapter.readPixels(mat.data);
+}
+
 CpuAlgorithmModule::~CpuAlgorithmModule() = default;
 
 CpuAlgorithmModule::CpuAlgorithmModule(int textureId, int width, int height) : pimpl(new impl) {
@@ -37,13 +43,11 @@ void CpuAlgorithmModule::setupRendering(int visuWidth, int visuHeight) {
 
 void CpuAlgorithmModule::addFrame(double t, int cameraInd, double focalLength, double px, double py) {
     std::lock_guard<std::mutex> lock(pimpl->mutex);
-    pimpl->grayTexture->render();
-    pimpl->grayTexture->readPixels(pimpl->grayFrame.data);
+    GpuCameraAdapter::readChecked(*pimpl->grayTexture, pimpl->grayFrame);
 
     if (pimpl->rgbaTexture) {
         assert(!pimpl->colorFrame.empty());
-        pimpl->rgbaTexture->render();
-        pimpl->rgbaTexture->readPixels(pimpl->colorFrame.data);
+        GpuCameraAdapter::readChecked(*pimpl->rgbaTexture, pimpl->colorFrame);
     }
 
     addFrame(t, pimpl->grayFrame, visualizationEnabled ? &pimpl->colorFrame : nullptr,

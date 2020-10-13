@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <vector>
+namespace cv { class Mat; }
 
 struct GpuCameraAdapter {
     struct TextureAdapter {
@@ -27,17 +28,14 @@ struct GpuCameraAdapter {
             GRAY_COMPRESSED
         };
 
-        virtual int render(bool toFrameBuffer = true) = 0;
+        virtual void render(bool toFrameBuffer = true) = 0;
 
         /**
          * Read cpuSize() pixels to a 4-channel image. Note that OpenGL ES, one can only copy
          * data to the CPU side as GL_RGBA so we always have 4 bytes per pixel.
          */
         virtual void readPixels(uint8_t *pixels) = 0;
-        inline int readPixelsSize() const {
-            constexpr int BYTES_PER_PIXEL = 4;
-            return width * height * BYTES_PER_PIXEL;
-        }
+        virtual std::size_t readPixelsSize() const = 0;
 
         TextureAdapter(int w, int h);
         virtual ~TextureAdapter();
@@ -47,6 +45,9 @@ struct GpuCameraAdapter {
     virtual std::unique_ptr<TextureAdapter> createTextureAdapter(TextureAdapter::Type type) = 0;
 
     virtual ~GpuCameraAdapter();
+
+    static void readChecked(TextureAdapter &adapter, cv::Mat &mat);
 };
+
 
 #endif
