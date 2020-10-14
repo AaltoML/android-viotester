@@ -14,16 +14,20 @@ android {
         targetSdkVersion 29
 
         def hasCustomVio = new File("custom-vio/viotester-integration").isDirectory()
+        def buildGpuExamples = project.hasProperty('USE_GPU_EXAMPLES')
 
         buildConfigField "boolean", "USE_SLAM", "true"
         buildConfigField "boolean", "USE_CUSTOM_VIO", "${hasCustomVio}"
+        buildConfigField "boolean", "USE_GPU_EXAMPLES", "${buildGpuExamples}"
+        buildConfigField "boolean", "USE_CAMERA_CALIBRATOR", "true"
 
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_TOOLCHAIN=clang",
                         "-DANDROID_STL=c++_static",
                         "-DCMAKE_VERBOSE_MAKEFILE=ON",
-                        "-DUSE_CUSTOM_VIO=${hasCustomVio ? 'ON' : 'OFF'}"
+                        "-DUSE_CUSTOM_VIO=${hasCustomVio ? 'ON' : 'OFF'}",
+                        "-DUSE_GPU_EXAMPLES=${buildGpuExamples}"
                 // speed up by compiling only for relevant architectures
                 abiFilters "arm64-v8a"
                 targets "vio_main"
@@ -125,10 +129,12 @@ android {
         demo {
             dimension "type"
             buildConfigField "boolean", "DEMO_MODE", "true"
+            buildConfigField "boolean", "USE_CAMERA_CALIBRATOR", "false"
             versionNameSuffix "-demo"
             externalNativeBuild {
                 cmake {
                     arguments += "-DCMAKE_BUILD_TYPE:STRING=Release"
+                    arguments += "-DUSE_CAMERA_CALIBRATOR=OFF"
                 }
             }
             //applicationIdSuffix ".demo"

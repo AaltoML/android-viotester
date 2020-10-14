@@ -31,7 +31,7 @@ endif()
 set(mobile-cv-suite_DIR "${MCS_TARGET_DIR}")
 #find_package(mobile-cv-suite REQUIRED PATHS "${MCS_TARGET_DIR}")
 
-add_library(${target} SHARED
+set(VIO_ANDROID_SRC
         camera_worker.cpp
         algorithm_worker.cpp
         algorithm_module.cpp
@@ -44,6 +44,23 @@ add_library(${target} SHARED
         opengl/ext_ar_renderer.cpp
         opengl/gpu_camera_adapter.cpp
         opengl/util.cpp)
+
+set(VIO_ANDROID_FLAGS "-DDUMMY_FLAG")
+
+option(USE_GPU_EXAMPLES "Compile with GPU examples" OFF)
+option(USE_CAMERA_CALIBRATOR "Compile with camera calibrator" ON)
+
+if (USE_GPU_EXAMPLES)
+    list(APPEND VIO_ANDROID_FLAGS "-DUSE_GPU_EXAMPLES")
+    list(APPEND VIO_ANDROID_SRC modules/gpu_examples.cpp)
+endif()
+
+if (USE_CAMERA_CALIBRATOR)
+    list(APPEND VIO_ANDROID_FLAGS "-DUSE_CAMERA_CALIBRATOR")
+    list(APPEND VIO_ANDROID_SRC modules/camera_calibrator.cpp)
+endif()
+
+add_library(${target} SHARED ${VIO_ANDROID_SRC})
 
 set(VIO_ANDROID_LIBS
         "GLESv3"
@@ -59,9 +76,10 @@ if (USE_CUSTOM_VIO)
     message(STATUS "Custom VIO build ${target}")
     add_subdirectory("${ROOT_DIR}/custom-vio/viotester-integration/android" build-custom-vio)
     list(APPEND VIO_ANDROID_LIBS ${CUSTOM_VIO_LIBS})
-    target_compile_definitions(${target} PRIVATE "-DUSE_CUSTOM_VIO")
+    list(APPEND VIO_ANDROID_FLAGS "-DUSE_CUSTOM_VIO")
 else()
     find_package(mobile-cv-suite REQUIRED)
 endif()
+target_compile_definitions(${target} PRIVATE ${VIO_ANDROID_FLAGS})
 
 target_link_libraries(${target} ${VIO_ANDROID_LIBS})

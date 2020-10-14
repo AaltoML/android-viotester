@@ -73,14 +73,12 @@ struct GpuCameraAdapterImplementation : GpuCameraAdapter {
             case TextureAdapter::Type::BGRA:
             {
                 auto r = new TextureWrapper(*this, newBuffer<4>());
-                r->function = opsFactory->create(
-                        accelerated::operations::pixelwiseAffine::Spec{}
-                        .setLinear({
+                r->function = opsFactory->pixelwiseAffine({
                             {0,0,1,0},
                             {0,1,0,0},
                             {1,0,0,0},
                             {0,0,0,1}
-                        }), *cameraImage, *r->image);
+                        }).build(*cameraImage, *r->image);
 
                 return std::unique_ptr<TextureAdapter>(r);
             }
@@ -88,11 +86,8 @@ struct GpuCameraAdapterImplementation : GpuCameraAdapter {
             case TextureAdapter::Type::GRAY:
             {
                 auto r = new TextureWrapper(*this, newBuffer<1>());
-                r->function = opsFactory->create(
-                        accelerated::operations::pixelwiseAffine::Spec{}
-                        .setLinear({
-                            {0,1,0,0} // green channel
-                        }), *cameraImage, *r->image);
+                r->function = opsFactory->pixelwiseAffine({{0,1,0,0}}) // green channel
+                        .build(*cameraImage, *r->image);
 
                 return std::unique_ptr<TextureAdapter>(r);
             }
