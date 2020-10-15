@@ -13,28 +13,55 @@ std::pair<std::function<void()>, std::shared_ptr<accelerated::Image>> createFilt
         const accelerated::Image &screen) {
     (void)screen;
 
+    typedef accelerated::FixedPoint<std::uint8_t> Ufixed8;
+
     // Note: careful with createLike, as cameraImage has a different storage type (EXTERNAL_OES)
-    std::shared_ptr<accelerated::Image> buffer = images.create(
+    std::shared_ptr<accelerated::Image> grayBuf = images.create<Ufixed8, 1>(
+        cameraImage.width,
+        cameraImage.height);
+
+    std::shared_ptr<accelerated::Image>
+        sobelXBuf = images.createLike(*grayBuf),
+        sobelYBuf = images.createLike(*grayBuf);
+
+    auto cameraToGray = ops.pixelwiseAffine({{ 0,1,0,0 }}).build(cameraImage, *grayBuf);
+
+    // note: signs don't matter here that much
+    auto sobelX = ops.fixedConvolution2D({
+        {-1, 0, 1},
+        {-2, 0, 2},
+        {-1, 0, 1}
+    }).setBias(0.5).setBorder(accelerated::Image::Border::MIRROR).build(*grayBuf);
+
+    auto sobelY = ops.fixedConvolution2D({
+        {-1,-2,-1 },
+        { 0, 0, 0 },
+        { 1, 2, 1 }
+    }).setBias(0.5).setBorder(accelerated::Image::Border::MIRROR).build(*grayBuf);
+
+    std::shared_ptr<accelerated::Image> screenBuffer = images.create<Ufixed8, 4>(
             cameraImage.width,
-            cameraImage.height,
-            cameraImage.channels,
-            cameraImage.dataType);
+            cameraImage.height);
 
-    // just some psychedelic colors
-    auto cameraFrameOp = ops.pixelwiseAffine({
-                {1,0,0,0},
-                {0,-1,0,0},
-                {0,0,1,0},
-                {0,0,0,1}
-            })
-            .setBias({0,1,0,0})
-            .build(cameraImage, *buffer);
+    auto renderOp = ops.affineCombination()
+            .addLinearPart({ {1}, {0}, {0}, {0} })
+            .addLinearPart({ {0}, {1}, {0}, {0} })
+            .setBias({ 0, 0, 0.5, 1 })
+            .build(*grayBuf, *screenBuffer);
 
-    auto cameraProcessor = [cameraFrameOp, &cameraImage, buffer]() {
-        accelerated::operations::callUnary(cameraFrameOp, cameraImage, *buffer);
+    auto cameraProcessor = [
+            &cameraImage,
+            cameraToGray, grayBuf,
+            sobelX, sobelXBuf,
+            sobelY, sobelYBuf,
+            renderOp, screenBuffer]() {
+        accelerated::operations::callUnary(cameraToGray, cameraImage, *grayBuf);
+        accelerated::operations::callUnary(sobelX, *grayBuf, *sobelXBuf);
+        accelerated::operations::callUnary(sobelY, *grayBuf, *sobelYBuf);
+        accelerated::operations::callBinary(renderOp, *sobelXBuf, *sobelYBuf, *screenBuffer);
     };
 
-    return std::make_pair(cameraProcessor, buffer);
+    return std::make_pair(cameraProcessor, screenBuffer);
 }
 
 struct GpuExampleModule : public AlgorithmModule {
