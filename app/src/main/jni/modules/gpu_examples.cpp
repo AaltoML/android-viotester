@@ -4,50 +4,70 @@
 #include <accelerated-arrays/standard_ops.hpp>
 #include <accelerated-arrays/opengl/image.hpp>
 #include <accelerated-arrays/opengl/operations.hpp>
+#include <sstream>
+
+//#define RENDER_SOBEL
 
 namespace {
 std::pair<std::function<void()>, std::shared_ptr<accelerated::Image>> createFilter(
         accelerated::Image::Factory &images,
-        accelerated::operations::StandardFactory &ops,
+        accelerated::opengl::operations::Factory &ops,
         accelerated::Image &cameraImage,
         const accelerated::Image &screen) {
     (void)screen;
 
     typedef accelerated::FixedPoint<std::uint8_t> Ufixed8;
 
+    std::shared_ptr<accelerated::Image> screenBuffer = images.create<Ufixed8, 4>(
+            cameraImage.width,
+            cameraImage.height);
+
     // Note: careful with createLike, as cameraImage has a different storage type (EXTERNAL_OES)
     std::shared_ptr<accelerated::Image> grayBuf = images.create<Ufixed8, 1>(
         cameraImage.width,
         cameraImage.height);
 
-    std::shared_ptr<accelerated::Image>
-        sobelXBuf = images.createLike(*grayBuf),
-        sobelYBuf = images.createLike(*grayBuf);
-
     auto cameraToGray = ops.pixelwiseAffine({{ 0,1,0,0 }}).build(cameraImage, *grayBuf);
+
+    //typedef Ufixed8 SobelType;
+    //double sobelScale = 1, sobelBias = 0.5;
+
+    typedef std::int16_t SobelType;
+    float sobelScale = 100, sobelBias = 0;
+
+    auto borderType = accelerated::Image::Border::MIRROR;
+
+    std::shared_ptr<accelerated::Image> sobelXBuf = images.create<SobelType, 1>(grayBuf->width, grayBuf->height);
+    std::shared_ptr<accelerated::Image> sobelYBuf = images.createLike(*sobelXBuf);
 
     // note: signs don't matter here that much
     auto sobelX = ops.fixedConvolution2D({
-        {-1, 0, 1},
-        {-2, 0, 2},
-        {-1, 0, 1}
-    }).setBias(0.5).setBorder(accelerated::Image::Border::MIRROR).build(*grayBuf);
+            {-1, 0, 1},
+            {-2, 0, 2},
+            {-1, 0, 1}
+        })
+        .scaleKernelValues(sobelScale)
+        .setBias(sobelBias)
+        .setBorder(borderType)
+        .build(*grayBuf, *sobelXBuf);
 
     auto sobelY = ops.fixedConvolution2D({
-        {-1,-2,-1 },
-        { 0, 0, 0 },
-        { 1, 2, 1 }
-    }).setBias(0.5).setBorder(accelerated::Image::Border::MIRROR).build(*grayBuf);
+            {-1,-2,-1 },
+            { 0, 0, 0 },
+            { 1, 2, 1 }
+        })
+        .scaleKernelValues(sobelScale)
+        .setBias(sobelBias)
+        .setBorder(borderType)
+        .build(*grayBuf, *sobelYBuf);
 
-    std::shared_ptr<accelerated::Image> screenBuffer = images.create<Ufixed8, 4>(
-            cameraImage.width,
-            cameraImage.height);
-
+#ifdef RENDER_SOBEL
+    const float renderBias = -sobelBias / sobelScale + 0.5f;
     auto renderOp = ops.affineCombination()
             .addLinearPart({ {1}, {0}, {0}, {0} })
             .addLinearPart({ {0}, {1}, {0}, {0} })
-            .setBias({ 0, 0, 0.5, 1 })
-            .build(*grayBuf, *screenBuffer);
+            .setBias({ renderBias, renderBias, 0.5, 1 })
+            .build(*sobelXBuf, *screenBuffer);
 
     auto cameraProcessor = [
             &cameraImage,
@@ -60,6 +80,63 @@ std::pair<std::function<void()>, std::shared_ptr<accelerated::Image>> createFilt
         accelerated::operations::callUnary(sobelY, *grayBuf, *sobelYBuf);
         accelerated::operations::callBinary(renderOp, *sobelXBuf, *sobelYBuf, *screenBuffer);
     };
+#else
+    typedef std::int16_t StructureType;
+    const float structureScale = sobelScale, structureBias = sobelBias;
+    // NOTE: does not seem to work with 3 channels, debug why
+    std::shared_ptr<accelerated::Image> structureBuf = images.create<StructureType, 4>(grayBuf->width, grayBuf->height);
+    const char *structureGlslType = "ivec4"; // could expose these in accelerated-arrays
+
+    std::string structShaderBody;
+    {
+        std::ostringstream oss;
+        oss << "const float inScaleInv = float(" << (1.0 / sobelScale) << ");\n"
+            << "const float inBias = float(" << sobelBias << ");\n"
+            << "const float outScale = float(" << structureScale << ");\n"
+            << "const float outBias = float(" << structureBias << ");\n"
+            << R"(
+            void main() {
+                ivec2 coord = ivec2(v_texCoord * vec2(u_outSize));
+                vec2 der = (vec2(
+                    float(texelFetch(u_texture1, coord, 0).r),
+                    float(texelFetch(u_texture2, coord, 0).r)) - inBias) * inScaleInv;
+                vec2 d2 = der*der;
+                float dxdy = der.x*der.y;
+                outValue = )" << structureGlslType << R"((vec4(
+                    d2.x, dxdy,
+                    dxdy, d2.y
+                ) * outScale + outBias);
+            }
+            )";
+        structShaderBody = oss.str();
+    }
+    auto structureOp = ops.wrapShader(structShaderBody, { *sobelXBuf, *sobelYBuf }, *structureBuf);
+
+    const float renderBias = -structureBias / structureScale + 0.5f;
+    auto renderOp = ops.pixelwiseAffine({
+                {1, 0, 0, 0},
+                {0, 1, 0, 0},
+                {0, 0, 1, 0},
+                {0, 0, 0, 0}
+            })
+            .scaleLinearValues(1.0 / structureScale)
+            .setBias({ renderBias, renderBias, renderBias, 1 })
+            .build(*structureBuf, *screenBuffer);
+
+    auto cameraProcessor = [
+            &cameraImage,
+            cameraToGray, grayBuf,
+            sobelX, sobelXBuf,
+            sobelY, sobelYBuf,
+            structureOp, structureBuf,
+            renderOp, screenBuffer]() {
+        accelerated::operations::callUnary(cameraToGray, cameraImage, *grayBuf);
+        accelerated::operations::callUnary(sobelX, *grayBuf, *sobelXBuf);
+        accelerated::operations::callUnary(sobelY, *grayBuf, *sobelYBuf);
+        accelerated::operations::callBinary(structureOp, *sobelXBuf, *sobelYBuf, *structureBuf);
+        accelerated::operations::callUnary(renderOp, *structureBuf, *screenBuffer);
+    };
+#endif
 
     return std::make_pair(cameraProcessor, screenBuffer);
 }
@@ -69,7 +146,7 @@ struct GpuExampleModule : public AlgorithmModule {
 
     std::unique_ptr<accelerated::Queue> processor;
     std::unique_ptr<accelerated::opengl::Image::Factory> imageFactory;
-    std::unique_ptr<accelerated::operations::StandardFactory> opsFactory;
+    std::unique_ptr<accelerated::opengl::operations::Factory> opsFactory;
     std::function<void()> cameraProcessor, renderer;
 
 
