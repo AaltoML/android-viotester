@@ -7,6 +7,7 @@
 #include <sstream>
 
 //#define RENDER_SOBEL
+//#define RENDER_UNFILTERED_STRUCTURE
 //#define RENDER_STRUCTURE
 
 namespace {
@@ -113,6 +114,9 @@ std::pair<std::function<void()>, std::shared_ptr<accelerated::Image>> createFilt
     }
     auto structureOp = ops.wrapShader(structShaderBody, { *sobelXBuf, *sobelYBuf }, *structureBuf);
 
+    std::shared_ptr<accelerated::Image> structureBuf2 = images.createLike(*structureBuf);
+
+#ifdef RENDER_STRUCTURE
     const float renderBias = -structureBias / structureScale + 0.5f;
     auto renderOp = ops.pixelwiseAffine({
                 {1, 0, 0, 0},
@@ -123,8 +127,9 @@ std::pair<std::function<void()>, std::shared_ptr<accelerated::Image>> createFilt
             .scaleLinearValues(1.0 / structureScale)
             .setBias({ renderBias, renderBias, renderBias, 1 })
             .build(*structureBuf, *screenBuffer);
+#endif
 
-#ifdef RENDER_STRUCTURE
+#ifdef RENDER_UNFILTERED_STRUCTURE
     auto cameraProcessor = [
             &cameraImage,
             cameraToGray, grayBuf,
@@ -139,19 +144,43 @@ std::pair<std::function<void()>, std::shared_ptr<accelerated::Image>> createFilt
         accelerated::operations::callUnary(renderOp, *structureBuf, *screenBuffer);
     };
 #else
-    std::shared_ptr<accelerated::Image> structureBuf2 = images.createLike(*structureBuf);
-
     // 3x3 box filter (separable)
     auto boxFilterX = ops.fixedConvolution2D({{ 1, 1, 1 }})
-        .scaleKernelValues(1 / 3.0)
-        .setBorder(borderType)
-        .build(*structureBuf);
+            .scaleKernelValues(1 / 3.0)
+            .setBorder(borderType)
+            .build(*structureBuf);
 
     auto boxFilterY = ops.fixedConvolution2D({ {1}, {1}, {1} })
-        .scaleKernelValues(1 / 3.0)
-        .setBorder(borderType)
-        .build(*structureBuf);
+            .scaleKernelValues(1 / 3.0)
+            .setBorder(borderType)
+            .build(*structureBuf);
 
+#ifndef RENDER_STRUCTURE
+    std::string cornerShaderBody;
+    {
+        std::ostringstream oss;
+        oss << "const float inScaleInv = float(" << (1.0 / structureScale) << ");\n"
+            << "const float inBias = float(" << structureBias << ");\n"
+            << "const float outBias = float(0.5);\n"
+            << "const float outScale = float(3.0);\n"
+            << "const float k = float(0.04);\n"
+            << R"(
+            void main() {
+                ivec2 coord = ivec2(v_texCoord * vec2(u_outSize));
+                vec4 m = (vec4(texelFetch(u_texture, coord, 0)) - inBias) * inScaleInv;
+                float det = m.x * m.a - m.y * m.z;
+                float tr = m.x + m.y;
+                float result = det - k * tr;
+
+                outValue = vec4(vec3(result)*outScale + outBias, 1.0);
+            }
+            )";
+        cornerShaderBody = oss.str();
+    }
+
+    // corner-op
+    auto renderOp = ops.wrapShader(cornerShaderBody, { *structureBuf }, *screenBuffer);
+#endif
     auto cameraProcessor = [
             &cameraImage,
             cameraToGray, grayBuf,
