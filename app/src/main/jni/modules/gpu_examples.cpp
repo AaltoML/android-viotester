@@ -7,6 +7,7 @@
 #include <sstream>
 
 //#define RENDER_SOBEL
+//#define RENDER_STRUCTURE
 
 namespace {
 std::pair<std::function<void()>, std::shared_ptr<accelerated::Image>> createFilter(
@@ -123,6 +124,7 @@ std::pair<std::function<void()>, std::shared_ptr<accelerated::Image>> createFilt
             .setBias({ renderBias, renderBias, renderBias, 1 })
             .build(*structureBuf, *screenBuffer);
 
+#ifdef RENDER_STRUCTURE
     auto cameraProcessor = [
             &cameraImage,
             cameraToGray, grayBuf,
@@ -136,6 +138,37 @@ std::pair<std::function<void()>, std::shared_ptr<accelerated::Image>> createFilt
         accelerated::operations::callBinary(structureOp, *sobelXBuf, *sobelYBuf, *structureBuf);
         accelerated::operations::callUnary(renderOp, *structureBuf, *screenBuffer);
     };
+#else
+    std::shared_ptr<accelerated::Image> structureBuf2 = images.createLike(*structureBuf);
+
+    // 3x3 box filter (separable)
+    auto boxFilterX = ops.fixedConvolution2D({{ 1, 1, 1 }})
+        .scaleKernelValues(1 / 3.0)
+        .setBorder(borderType)
+        .build(*structureBuf);
+
+    auto boxFilterY = ops.fixedConvolution2D({ {1}, {1}, {1} })
+        .scaleKernelValues(1 / 3.0)
+        .setBorder(borderType)
+        .build(*structureBuf);
+
+    auto cameraProcessor = [
+            &cameraImage,
+            cameraToGray, grayBuf,
+            sobelX, sobelXBuf,
+            sobelY, sobelYBuf,
+            structureOp, structureBuf,
+            boxFilterX, boxFilterY, structureBuf2,
+            renderOp, screenBuffer]() {
+        accelerated::operations::callUnary(cameraToGray, cameraImage, *grayBuf);
+        accelerated::operations::callUnary(sobelX, *grayBuf, *sobelXBuf);
+        accelerated::operations::callUnary(sobelY, *grayBuf, *sobelYBuf);
+        accelerated::operations::callBinary(structureOp, *sobelXBuf, *sobelYBuf, *structureBuf);
+        accelerated::operations::callUnary(boxFilterX, *structureBuf, *structureBuf2);
+        accelerated::operations::callUnary(boxFilterY, *structureBuf2, *structureBuf);
+        accelerated::operations::callUnary(renderOp, *structureBuf, *screenBuffer);
+    };
+#endif
 #endif
 
     return std::make_pair(cameraProcessor, screenBuffer);
