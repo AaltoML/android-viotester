@@ -94,8 +94,8 @@ public class CameraWorker {
         int width;
         int height;
         float focalLength = -1;
-        float principalPointX;
-        float principalPointY;
+        float principalPointX = -1;
+        float principalPointY = -1;
 
         String cameraId;
 
@@ -156,9 +156,16 @@ public class CameraWorker {
         Size pixelArraySize = characteristics.get(CameraCharacteristics.SENSOR_INFO_PIXEL_ARRAY_SIZE);
         Rect activeRect = characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
 
+        CameraParameters params = new CameraParameters();
+        params.cameraId = cameraId;
+        params.width = dataSize.getWidth();
+        params.height = dataSize.getHeight();
+        params.principalPointX = params.width * 0.5f;
+        params.principalPointY = params.height * 0.5f;
+
         if (intrinsics == null || pixelArraySize == null || activeRect == null) {
             Log.w(TAG, "no intrinsic camera parameters available");
-            return null;
+            return params;
         }
 
         if (intrinsics.length < 5) throw new IllegalStateException("unexpected intrinsics array size");
@@ -169,17 +176,8 @@ public class CameraWorker {
         float cy = intrinsics[3];
         float skew = intrinsics[4];
 
-        CameraParameters params = new CameraParameters();
-
-        params.cameraId = cameraId;
-        params.width = dataSize.getWidth();
-        params.height = dataSize.getHeight();
-
-
         if (fx <= 0.0 || fy <= 0.0) {
             Log.w(TAG, "invalid focal lengths " + fx + ", " + fy);
-            params.principalPointX = params.width * 0.5f;
-            params.principalPointY = params.height * 0.5f;
         } else {
             int nativeWidth = activeRect.right - activeRect.left;
             int nativeHeight = activeRect.bottom - activeRect.top;
