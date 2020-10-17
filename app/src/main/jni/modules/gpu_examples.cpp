@@ -306,13 +306,11 @@ std::pair<std::function<void()>, std::shared_ptr<accelerated::Image>> create(
 }
 
 struct GpuExampleModule : public AlgorithmModule {
-    std::unique_ptr<accelerated::Image> camera, screen;
-
     std::unique_ptr<accelerated::Queue> processor;
     std::unique_ptr<accelerated::opengl::Image::Factory> imageFactory;
     std::unique_ptr<accelerated::opengl::operations::Factory> opsFactory;
+    std::unique_ptr<accelerated::Image> camera, screen;
     std::function<void()> cameraProcessor, renderer;
-
 
     GpuExampleModule(int textureId, int width, int height) {
         processor = accelerated::Processor::createQueue();
@@ -373,5 +371,5 @@ struct GpuExampleModule : public AlgorithmModule {
 
 std::unique_ptr<AlgorithmModule> buildGpuExample(int textureId, int w, int h, const AlgorithmModule::json &settings) {
     (void)settings;
-    return AlgorithmModule::makeThreadSafe(new GpuExampleModule(textureId, w, h));
+    return std::unique_ptr<AlgorithmModule>(new GpuExampleModule(textureId, w, h));
 }
