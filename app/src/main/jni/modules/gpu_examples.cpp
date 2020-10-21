@@ -33,6 +33,19 @@ struct Gray {
     void call() const {
         accelerated::operations::callUnary(cameraToGray, cameraImage, *buffer);
     }
+
+    std::function<void()> renderer(
+            accelerated::opengl::operations::Factory &ops,
+            const std::shared_ptr<accelerated::Image>& screenBuffer)
+    {
+        auto renderOp = ops.swizzle("rrr1").build(*buffer, *screenBuffer);
+
+        Gray gray = *this;
+        return [gray, renderOp, screenBuffer]() {
+            gray.call();
+            accelerated::operations::callUnary(renderOp, *gray.buffer, *screenBuffer);
+        };
+    }
 };
 
 struct Sobel {
@@ -292,8 +305,9 @@ std::pair<std::function<void()>, std::shared_ptr<accelerated::Image>> create(
             cameraImage.width,
             cameraImage.height);
 
+    //auto processor = gray.renderer(ops, screenBuffer);
     Sobel sobel(gray, images, ops);
-    // auto processor = sobel.renderer(ops, screenBuffer);
+    //auto processor = sobel.renderer(ops, screenBuffer);
     StructureMatrix structureMatrix(sobel, images, ops);
     // auto processor = structureMatrix.renderer(ops, screenBuffer);
     FilteredStructureMatrix filteredStructureMatrix(structureMatrix, images, ops);
