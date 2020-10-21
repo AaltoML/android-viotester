@@ -1,5 +1,6 @@
 #include "gpu_camera_adapter.hpp"
 #include <memory>
+#include <string>
 #include <accelerated-arrays/standard_ops.hpp>
 #include <accelerated-arrays/opengl/image.hpp>
 #include <accelerated-arrays/opengl/operations.hpp>
@@ -73,20 +74,15 @@ struct GpuCameraAdapterImplementation : GpuCameraAdapter {
             case TextureAdapter::Type::BGRA:
             {
                 auto r = new TextureWrapper(*this, newBuffer<4>());
-                r->function = opsFactory->pixelwiseAffine({
-                            {0,0,1,0},
-                            {0,1,0,0},
-                            {1,0,0,0},
-                            {0,0,0,1}
-                        }).build(*cameraImage, *r->image);
-
+                r->function = opsFactory->swizzle("bgra").build(*cameraImage, *r->image);
                 return std::unique_ptr<TextureAdapter>(r);
             }
             case TextureAdapter::Type::GRAY_COMPRESSED:
             case TextureAdapter::Type::GRAY:
             {
                 auto r = new TextureWrapper(*this, newBuffer<1>());
-                r->function = opsFactory->pixelwiseAffine({{0,1,0,0}}) // green channel
+                // coefficients from OpenCV
+                r->function = opsFactory->pixelwiseAffine({{ 0.299, 0.587, 0.114, 0}})
                         .build(*cameraImage, *r->image);
 
                 return std::unique_ptr<TextureAdapter>(r);
