@@ -13,6 +13,7 @@ import androidx.preference.PreferenceManager;
 import org.example.viotester.ext_ar.TrackingProvider;
 import org.example.viotester.modules.CalibrationActivity;
 import org.example.viotester.modules.DataCollectionActivity;
+import org.example.viotester.modules.GpuExampleActivity;
 import org.example.viotester.modules.TrackingActivity;
 
 public class MainActivity extends Activity {
@@ -55,9 +56,16 @@ public class MainActivity extends Activity {
         if (!BuildConfig.USE_CUSTOM_VIO) {
             findViewById(R.id.btn_tracking).setVisibility(View.GONE);
         }
+        if (!BuildConfig.USE_CAMERA_CALIBRATOR) {
+            findViewById(R.id.btn_calibration).setVisibility(View.GONE);
+        }
+        if (!BuildConfig.USE_GPU_EXAMPLES) {
+            findViewById(R.id.btn_gpu_examples).setVisibility(View.GONE);
+        }
         findViewById(R.id.btn_tracking).setOnClickListener(goToActivity(TrackingActivity.class));
         findViewById(R.id.btn_data_collection).setOnClickListener(goToActivity(DataCollectionActivity.class));
         findViewById(R.id.btn_calibration).setOnClickListener(goToActivity(CalibrationActivity.class));
+        findViewById(R.id.btn_gpu_examples).setOnClickListener(goToActivity(GpuExampleActivity.class));
         findViewById(R.id.btn_share).setOnClickListener(goToActivity(ShareListActivity.class));
         findViewById(R.id.btn_settings).setOnClickListener(goToActivity(SettingsActivity.class));
 
@@ -69,7 +77,6 @@ public class MainActivity extends Activity {
     private void enableDemoMode() {
         findViewById(R.id.btn_share).setVisibility(View.GONE);
         findViewById(R.id.btn_data_collection).setVisibility(View.GONE);
-        findViewById(R.id.btn_calibration).setVisibility(View.GONE);
     }
 
     @Override

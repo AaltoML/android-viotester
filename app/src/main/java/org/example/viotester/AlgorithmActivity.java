@@ -223,7 +223,8 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
         else {
             // set up GL rendering
             mGlSurfaceView.setPreserveEGLContextOnPause(true);
-            mGlSurfaceView.setEGLContextClientVersion(2);
+            mGlSurfaceView.setEGLContextClientVersion(3);
+            // TODO: drop depth buffer in non-AR mode
             mGlSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
             mGlSurfaceView.setRenderer(this);
             mGlSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
