@@ -119,7 +119,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         public void onLocationChanged(final Location location) {
             final long t = SystemClock.elapsedRealtimeNanos();
             Log.d(TAG, "Location: " + location.getLatitude() + ", " + location.getLongitude() + " (accuracy " + location.getAccuracy() + "m)");
-            mNativeHandler.post(new Runnable() {
+            mSensorHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     processGpsLocation(t, location.getLatitude(), location.getLongitude(), location.getAltitude(), location.getAccuracy());
@@ -146,7 +146,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     private final SensorManager mSensorManager;
     private final List<Sensor> mSensors;
     private HandlerThread mHandlerThread;
-    private Handler mNativeHandler;
+    private Handler mSensorHandler;
     private final Settings mSettings;
     private final Listener mListener;
     private final GpsListener mGpsListener;
@@ -231,12 +231,12 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
 
         mHandlerThread = new HandlerThread("NativeHandler", Thread.MAX_PRIORITY);
         mHandlerThread.start();
-        mNativeHandler = new Handler(mHandlerThread.getLooper());
+        mSensorHandler = new Handler(mHandlerThread.getLooper());
 
         // always record sensors at max rate when
         final int sensorDelay = SensorManager.SENSOR_DELAY_FASTEST;
         for (Sensor sensor : mSensors) {
-            mSensorManager.registerListener(this, sensor, sensorDelay, mNativeHandler);
+            mSensorManager.registerListener(this, sensor, sensorDelay, mSensorHandler);
         }
         mAccMonitor.start();
         mGyroMonitor.start();
@@ -257,7 +257,12 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         mGyroMonitor.stop();
         mProcessedFpsMonitor.stop();
         mGpsListener.stop();
-        nativeStop();
+        mSensorHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                nativeStop();
+            }
+        });
         mExternalInitialized = false;
 
         mHandlerThread.quitSafely();
@@ -317,14 +322,25 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         configure(t0, width, height, textureId, mSettings.halfFps ? 2 : 1, false, mSettings.moduleName, jsonSettings());
 
         if (mSettings.parametersFileName != null) {
-            writeParamsFile();
+            mSensorHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    writeParamsFile();
+                }
+            });
         }
         if (mSettings.infoFileName != null) {
-            String device = Build.MANUFACTURER
+            final String device = Build.MANUFACTURER
                     + " " + Build.MODEL
                     + " " + Build.VERSION.RELEASE
                     + " " + Build.VERSION_CODES.class.getFields()[android.os.Build.VERSION.SDK_INT].getName();
-            writeInfoFile(mMode, device);
+
+            mSensorHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    writeInfoFile(mMode, device);
+                }
+            });
         }
     }
 
@@ -392,7 +408,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
 
     void logExternalPoseMatrix(final long timeNs, final float[] viewMtx, final String tag) {
         // beneficial to process this in non-GL thread, hence posting to native handler
-        mNativeHandler.post(new Runnable() {
+        mSensorHandler.post(new Runnable() {
             @Override
             public void run() {
                 recordPoseMatrix(timeNs, viewMtx, tag);
@@ -411,19 +427,22 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         processExternalImage(timeNanos, frameNumber, cameraInd, focalLength, ppx, ppy);
     }
 
-    public native void processExternalImage(long timeNanos, long frameNumber, int cameraInd, float focalLength, float ppx, float ppy);
-
+    // --- these are called from the GL thread
     private native void configureVisualization(int width, int height);
     private native void configure(long timeNanos, int width, int height, int textureId, int frameStride, boolean recordExternalPoses, String moduleName, String settingsJson);
+
     private native boolean processFrame(long timeNanos, int cameraInd, float focalLength, float px, float py);
+    public native void processExternalImage(long timeNanos, long frameNumber, int cameraInd, float focalLength, float ppx, float ppy);
 
     private native void drawVisualization();
+    private native String getStatsString(); // TODO: rather call from sensor thread
+    private native int getTrackingStatus(); // TODO: rather call from sensor thread
+
+    // --- these are called from the sensor thread (mSensorHandler)
     private native void processGyroSample(long timeNanos, float x, float y, float z);
     private native void processAccSample(long timeNanos, float x, float y, float z);
     private native void processGpsLocation(long timeNanos, double latitude, double longitude, double altitude, float accuracy);
     private native void recordPoseMatrix(long timeNanos, float[] viewMatrix, String tag);
-    private native String getStatsString();
-    private native int getTrackingStatus();
     private native void writeInfoFile(String mode, String device);
     private native void writeParamsFile();
     private native void nativeStop();

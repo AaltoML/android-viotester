@@ -21,10 +21,12 @@ public:
         float accuracy;
     };
 
-    // these methods and c/dtors are guaranteed to be called from an "algorithm thread"
+    // these may be called from the GL thread
     static std::unique_ptr<AlgorithmModule> build(int textureId, int width, int height, const std::string &name, const json *settings = nullptr);
-
     virtual ~AlgorithmModule() = default;
+
+    // these methods are guaranteed to be called from an "algorithm/sensor thread"
+    virtual void stop() {}
 
     virtual void addGyro(double t, const Vector3d &val) = 0;
     virtual void addAcc(double t, const Vector3d &val) = 0;

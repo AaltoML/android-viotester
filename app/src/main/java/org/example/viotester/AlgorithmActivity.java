@@ -317,8 +317,8 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
     {
         Log.d(TAG, "onPause");
         super.onPause();
-        if (mGlSurfaceView != null) mGlSurfaceView.onPause();
         mAlgorithmWorker.stop();
+        if (mGlSurfaceView != null) mGlSurfaceView.onPause();
     }
 
     @Override

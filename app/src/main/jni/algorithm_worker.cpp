@@ -44,7 +44,14 @@ extern "C" {
 
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_nativeStop(JNIEnv *, jobject) {
     log_debug("nativeStop");
+    auto algorithm = std::atomic_load(&algorithmPtr);
+    if (!algorithm) {
+        log_warn("Expected algorithm to exist at this point");
+        return;
+    }
+    algorithm->stop();
     std::atomic_store(&algorithmPtr, std::shared_ptr<AlgorithmModule>(nullptr));
+    // dtor may be called here
 }
 
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_configureVisualization(
