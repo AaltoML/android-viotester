@@ -19,15 +19,15 @@ import androidx.preference.EditTextPreference;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.PreferenceGroup;
 import androidx.preference.PreferenceManager;
+import androidx.preference.PreferenceScreen;
 
 public class SettingsActivity extends AppCompatActivity {
     static private final String DEFAULT_RESO = "640x480";
     static private final String DEFAULT_FPS = "30";
 
     static String[] DEMO_MODE_SETTINGS = {
-            "category_custom_vio_visualization",
-            "category_visualization",
             "visualization",
             "overlay_visualization",
             "reset_preferences"
@@ -109,15 +109,27 @@ public class SettingsActivity extends AppCompatActivity {
         }
 
         private void enableDemoMode() {
-            findPreference("category_algorithm").setVisible(false);
-            findPreference("category_data_recording").setVisible(false);
-            for (String key : getPreferenceScreen().getSharedPreferences().getAll().keySet()) {
-                if (DEMO_MODE_SETTINGS_SET.contains(key)) {
+            // hide non-whitelisted settings and empty categories
+            PreferenceScreen screen = getPreferenceScreen();
+            for (int i = 0; i < screen.getPreferenceCount(); ++i) {
+                Preference p = screen.getPreference(i);
+                if (DEMO_MODE_SETTINGS_SET.contains(p.getKey())) {
                     continue;
                 }
-                Preference pref = findPreference(key);
-                if (pref != null) {
-                    pref.setVisible(false);
+                if (p instanceof PreferenceGroup) {
+                    PreferenceGroup group = (PreferenceGroup)p;
+                    boolean anyVisible = false;
+                    for (int j = 0; j < group.getPreferenceCount(); ++j) {
+                        Preference child = group.getPreference(j);
+                        if (DEMO_MODE_SETTINGS_SET.contains(child.getKey())) {
+                            anyVisible = true;
+                        } else {
+                            child.setVisible(false);
+                        }
+                    }
+                    if (!anyVisible) group.setVisible(false);
+                } else {
+                    p.setVisible(false);
                 }
             }
         }
