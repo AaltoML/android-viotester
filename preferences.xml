@@ -17,7 +17,7 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <PreferenceCategory app:title="Algorithm" app:key="category_algorithm">
+    <PreferenceCategory app:title="Input" app:key="category_algorithm">
         <ListPreference
             app:defaultValue="0"
             app:entries="@array/placeholders"
@@ -49,23 +49,6 @@
             app:useSimpleSummaryProvider="true" />
 
         <SwitchPreference
-            app:key="enable_odometry"
-            app:title="Odometry"
-            app:defaultValue="true"
-            app:summary="not only feature tracking"/>
-
-        <SwitchPreference
-            app:key="enable_slam"
-            app:title="SLAM"
-            app:defaultValue="true"
-            app:summary="enable SLAM"/>
-
-        <SwitchPreference
-            app:key="fast_mode"
-            app:title="FAST mode"
-            app:defaultValue="true" />
-
-        <SwitchPreference
             app:key="half_fps"
             app:title="Half FPS mode"
             app:defaultValue="true" />
@@ -73,41 +56,15 @@
         <SwitchPreference
             app:key="use_calib_acc"
             app:title="Use calibrated acc"
-            app:dependency="enable_odometry"
             app:defaultValue="true" />
 
         <SwitchPreference
             app:key="use_calib_gyro"
             app:title="Use calibrated gyro"
-            app:dependency="enable_odometry"
-            app:defaultValue="true" />
-
-        <SwitchPreference
-            app:key="jump_filter"
-            app:title="Jump filter"
-            app:dependency="enable_odometry"
             app:defaultValue="true" />
 
     </PreferenceCategory>
-    <PreferenceCategory app:title="Visualization" app:key="category_visualization">
-        <ListPreference
-            app:defaultValue="plain_video"
-            app:entries="@array/placeholders"
-            app:entryValues="@array/placeholders"
-            app:key="visualization"
-            app:title="Video"
-            app:dependency="enable_odometry"
-            app:useSimpleSummaryProvider="true" />
-
-        <ListPreference
-            app:defaultValue="track"
-            app:entries="@array/placeholders"
-            app:entryValues="@array/placeholders"
-            app:key="overlay_visualization"
-            app:title="Overlay"
-            app:dependency="enable_odometry"
-            app:useSimpleSummaryProvider="true" />
-
+    <PreferenceCategory app:title="Debug" app:key="category_visualization">
         <SwitchPreference
             app:key="show_text_debug"
             app:title="Text debug stats"

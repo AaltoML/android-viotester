@@ -3,8 +3,6 @@ package org.example.viotester;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.InputType;
-import android.util.Log;
-import android.view.View;
 import android.widget.EditText;
 
 import java.util.ArrayList;
@@ -12,7 +10,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -29,6 +26,7 @@ public class SettingsActivity extends AppCompatActivity {
     static private final String DEFAULT_FPS = "30";
 
     static String[] DEMO_MODE_SETTINGS = {
+            "category_custom_vio_visualization",
             "category_visualization",
             "visualization",
             "overlay_visualization",
@@ -85,10 +83,10 @@ public class SettingsActivity extends AppCompatActivity {
             populateCameras();
             populateResolutions();
             populateFps();
-            populateVideoVisualizations();
-            populateOverlayVisualizations();
             setFocalLength();
-            findPreference("enable_slam").setEnabled(mSlamPossible);
+
+            Preference slamPref = findPreference("enable_slam");
+            if (slamPref != null) slamPref.setEnabled(mSlamPossible);
 
             Preference resetButton = findPreference("reset_preferences");
             resetButton.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
@@ -213,32 +211,6 @@ public class SettingsActivity extends AppCompatActivity {
             resolutionListPref.setEntries(entries);
             resolutionListPref.setEntryValues(entryValues);
             resolutionListPref.setDefaultValue(DEFAULT_RESO);
-        }
-
-        private void populateVideoVisualizations() {
-            ListPreference pref = findPreference("visualization");
-            AlgorithmWorker.Settings.VideoVisualization[] options = AlgorithmWorker.Settings.VideoVisualization.values();
-            final CharSequence[] entries = new CharSequence[options.length];
-            for (int i=0; i<options.length; ++i) {
-                entries[i] = options[i].name().toLowerCase();
-            }
-
-            pref.setEntries(entries);
-            pref.setEntryValues(entries);
-            pref.setDefaultValue("plain_video");
-        }
-
-        private void populateOverlayVisualizations() {
-            ListPreference pref = findPreference("overlay_visualization");
-            AlgorithmWorker.Settings.OverlayVisualization[] options = AlgorithmWorker.Settings.OverlayVisualization.values();
-            final CharSequence[] entries = new CharSequence[options.length];
-            for (int i=0; i<options.length; ++i) {
-                entries[i] = options[i].name().toLowerCase();
-            }
-
-            pref.setEntries(entries);
-            pref.setEntryValues(entries);
-            pref.setDefaultValue("track");
         }
 
         private void setFocalLength() {

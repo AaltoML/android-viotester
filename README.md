@@ -38,9 +38,13 @@ Approximates camera parameters using OpenCV on phones whose Camera 2 API does pr
 
 ## Build
 
-First, if you do not have a `google-services.json` (Firebase account), use the provided dummy one
+First, configure using
 
-    cp app/dummy-google-services.json app/google-services.json
+    ./configure.sh
+
+Note: you will also have to do this after changing anything in `preferences.xml`. In addition to
+merging the available settings XML files, it creates a dummy `google-services.json` if you don't
+have one.
 
 ### Linux/Mac setup
 
