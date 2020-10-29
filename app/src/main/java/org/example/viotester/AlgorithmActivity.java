@@ -237,22 +237,6 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
     {
         AlgorithmWorker.Settings s = new AlgorithmWorker.Settings();
 
-        String videoVisuString = prefs.getString("visualization", "plain_video").toUpperCase();
-        try {
-            s.videoVisualization =  AlgorithmWorker.Settings.VideoVisualization.valueOf(videoVisuString);
-        } catch (IllegalArgumentException e) {
-            Log.w(TAG, "unknown video visualization " + videoVisuString);
-            s.videoVisualization = AlgorithmWorker.Settings.VideoVisualization.NONE;
-        }
-
-        String overlayVisuString = prefs.getString("overlay_visualization", "track").toUpperCase();
-        try {
-            s.overlayVisualization =  AlgorithmWorker.Settings.OverlayVisualization.valueOf(overlayVisuString);
-        } catch (IllegalArgumentException e) {
-            Log.w(TAG, "unknown overlay visualization " + overlayVisuString);
-            s.overlayVisualization = AlgorithmWorker.Settings.OverlayVisualization.NONE;
-        }
-
         s.targetCamera = prefs.getString("target_camera", "0");
 
         s.halfFps = prefs.getBoolean("half_fps", false);
@@ -271,10 +255,6 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
         s.useCalibGyro = prefs.getBoolean("use_calib_gyro", true);
 
         s.moduleName = mNativeModule;
-        s.trackerOnly = !prefs.getBoolean("enable_odometry", true);
-
-        s.fastMode = prefs.getBoolean("fast_mode", false);
-        s.jumpFilter = prefs.getBoolean("jump_filter", true);
 
         String focalLengthString = prefs.getString("focal_length_1280", "-1");
         try {
@@ -302,11 +282,12 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
         s.recordCamera =  !trackingMode || prefs.getBoolean("record_tracking_sensors_and_video", false);
         s.recordPoses = mDataCollectionMode || (trackingMode && prefs.getBoolean("record_tracking_poses", false));
         s.recordSensors = mDataCollectionMode || (trackingMode && prefs.getBoolean("record_tracking_sensors_and_video", false));
-        s.previewCamera = mDataCollectionMode;
         final boolean recordingSomething = mDataCollectionMode || s.recordPoses;
         s.recordGps = recordingSomething && prefs.getBoolean("record_gps", false);
         s.recordWiFiLocations = recordingSomething && prefs.getBoolean("record_google_wifi_locations", false);
         s.recordingOnly = mDataCollectionMode;
+
+        s.allPrefs = prefs.getAll();
 
         adjustSettings(s);
         return s;

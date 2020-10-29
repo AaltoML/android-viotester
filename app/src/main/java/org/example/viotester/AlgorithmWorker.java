@@ -17,8 +17,12 @@ import android.util.Size;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import androidx.annotation.Nullable;
+
+import org.codehaus.jackson.annotate.JsonRawValue;
 import org.codehaus.jackson.map.ObjectMapper;
 
 public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listener {
@@ -32,24 +36,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     }
 
     public static class Settings {
-        public enum VideoVisualization {
-            NONE,
-            PLAIN_VIDEO,
-            TRACKER_DEBUG,
-            ODOMETRY_DEBUG;
-        }
-
-        public enum OverlayVisualization {
-            NONE,
-            TRACK,
-            AR,
-            SPLIT_SCREEN
-        }
-
         public String moduleName;
-
-        public VideoVisualization videoVisualization;
-        public OverlayVisualization overlayVisualization;
 
         public int targetFps;
         public Size targetImageSize;
@@ -58,14 +45,10 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         public boolean halfFps;
         public boolean useCalibAcc;
         public boolean useCalibGyro;
-        public boolean fastMode;
-        public boolean jumpFilter;
-        public boolean trackerOnly;
 
         public boolean recordCamera;
         public boolean recordSensors;
         public boolean recordPoses;
-        public boolean previewCamera;
 
         public int screenWidth;
         public int screenHeight;
@@ -89,6 +72,9 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         public float focalLength = -1;
         public float principalPointX = -1;
         public float principalPointY = -1;
+
+        // All SharedPreferences, including generic, possibly module-specific settings
+        public Map<String, ?> allPrefs;
     }
 
     private class GpsListener implements LocationListener {
@@ -319,6 +305,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         mSettings.principalPointY = mCameraParameters.principalPointY;
 
         long t0 = SystemClock.elapsedRealtimeNanos(); // this should be same as the sensor clock
+        Log.d(TAG, jsonSettings());
         configure(t0, width, height, textureId, mSettings.halfFps ? 2 : 1, false, mSettings.moduleName, jsonSettings());
 
         if (mSettings.parametersFileName != null) {

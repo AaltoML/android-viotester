@@ -17,7 +17,7 @@ struct RecordingModule : public CpuAlgorithmModule {
         log_info("recording only mode");
         recordSensors = settings.at("recordSensors").get<bool>();
         recordCamera = settings.at("recordCamera").get<bool>();
-        visualizationEnabled = settings.at("previewCamera").get<bool>() || recordCamera;
+        visualizationEnabled = true;
 
         auto recName = settings.at("recordingFileName");
         auto videoRecName = settings.at("videoRecordingFileName");

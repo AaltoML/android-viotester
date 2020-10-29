@@ -7,6 +7,10 @@
 build/
 release/
 
+# Built dynamically
+app/src/main/res/values/arrays.xml
+app/src/main/res/xml/root_preferences.xml
+
 # User configuration.
 local.properties
 
