@@ -19,7 +19,12 @@ public:
     virtual ~CameraRenderer() = default;
 
     virtual void render() = 0;
+
+    // data can be set either by giving an external buffer (in RGBA/BGRA format) or an OpenGL
+    // texture ID. Do not mix these (e.g., call with a texture ID after calling with a CPU buffer)
     virtual void setTextureData(int textureWidth, int textureHeight, const void *buffer, AspectFixMethod aspectFix) = 0;
+    virtual void setExternalTexture(int textureWidth, int textureHeight, int textureId, AspectFixMethod aspectFix) = 0;
+
     virtual bool matchDimensions(int w, int h) const = 0;
 
     /**

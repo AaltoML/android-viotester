@@ -106,6 +106,12 @@ public:
     }
 
     void setTextureData(int texWidth, int texHeight, const void *buffer, AspectFixMethod aspectFix) final {
+        setExternalTexture(texWidth, texHeight, 0, aspectFix);
+        textureDataChanged = true;
+        textureData = buffer;
+    }
+
+    void setExternalTexture(int texWidth, int texHeight, int extTextureId, AspectFixMethod aspectFix) final {
         if (textureId == 0) {
             // note xScale <-> yScale flipped due to rotated image
             const double yScale = width / double(texWidth);
@@ -143,10 +149,11 @@ public:
             // log_debug("screen %dx%d, camera %dx%d, window %dx%d, scale (%g, %g)",
             //        width, height, texWidth, texHeight, activeWidth, activeHeight, relXScale, relYScale);
         } else {
+            assert(extTextureId == 0 || extTextureId == int(textureId));
             assert(texWidth == textureWidth && texHeight == textureHeight);
         }
-        textureDataChanged = true;
-        textureData = buffer;
+        if (extTextureId != 0) textureId = extTextureId;
+        textureDataChanged = false;
         textureWidth = texWidth;
         textureHeight = texHeight;
     }
