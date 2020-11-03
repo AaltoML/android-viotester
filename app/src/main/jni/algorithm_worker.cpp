@@ -148,10 +148,10 @@ JNIEXPORT jint JNICALL Java_org_example_viotester_AlgorithmWorker_getTrackingSta
     return -1;
 }
 
-JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_drawVisualization(JNIEnv *, jobject) {
+JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_drawVisualization(JNIEnv *, jobject, jlong timeNanos) {
     auto algorithm = std::atomic_load(&algorithmPtr);
     if (!algorithm) return;
-    algorithm->render();
+    algorithm->render(doubleClock.update(timeNanos));
 }
 
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processGpsLocation(JNIEnv *, jobject, jlong timeNanos, jdouble lat, jdouble lon, jdouble alt, jfloat acc) {

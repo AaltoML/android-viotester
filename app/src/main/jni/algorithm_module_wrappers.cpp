@@ -61,9 +61,10 @@ void CpuAlgorithmModule::addFrame(double t, int cameraInd, double focalLength, d
     }
 }
 
-void CpuAlgorithmModule::render() {
+void CpuAlgorithmModule::render(double t) {
     if (!visualizationEnabled) return;
     std::lock_guard<std::mutex> lock(pimpl->renderMutex);
+    (void)t; // not used here
     pimpl->renderer->render();
 }
 
@@ -122,9 +123,9 @@ public:
         return p->setupRendering(width, height);
     }
 
-    void render() final {
+    void render(double t) final {
         Lock lock(m);
-        p->render();
+        p->render(t);
     }
 
     MutexLockedImplementation(AlgorithmModule *nonThreadSafe) : p(nonThreadSafe) {}
