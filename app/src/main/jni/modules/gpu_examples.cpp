@@ -371,7 +371,8 @@ struct GpuExampleModule : public AlgorithmModule {
         processor->processAll();
     }
 
-    void render() final {
+    void render(double t) final {
+        (void)t;
         if (renderer) renderer();
         processor->processAll();
     }

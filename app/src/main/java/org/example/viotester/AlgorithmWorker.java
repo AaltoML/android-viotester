@@ -356,7 +356,8 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
 
     @Override
     public void onDraw() {
-        drawVisualization();
+        // this clock is typically more or less in sync with the sensors & camera
+        drawVisualization(SystemClock.elapsedRealtimeNanos());
     }
 
     @Override
@@ -421,7 +422,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     private native boolean processFrame(long timeNanos, int cameraInd, float focalLength, float px, float py);
     public native void processExternalImage(long timeNanos, long frameNumber, int cameraInd, float focalLength, float ppx, float ppy);
 
-    private native void drawVisualization();
+    private native void drawVisualization(long timeNanos);
     private native String getStatsString(); // TODO: rather call from sensor thread
     private native int getTrackingStatus(); // TODO: rather call from sensor thread
 

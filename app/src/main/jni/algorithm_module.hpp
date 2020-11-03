@@ -46,8 +46,11 @@ public:
      */
     virtual void setupRendering(int width, int height) { (void)width; (void)height; }
 
-    /** Render visualizations, if any */
-    virtual void render() {}
+    /**
+     * Render visualizations, if any
+     * @param t Current time (real time)
+     */
+    virtual void render(double t) { (void)t; }
 
     // This helper function will protect all calls with a single mutex
     static std::unique_ptr<AlgorithmModule> makeThreadSafe(AlgorithmModule *nonThreadSafe);
@@ -61,7 +64,7 @@ public:
 
     void addFrame(double t, int cameraInd, double focalLength, double px, double py) final;
     void setupRendering(int width, int height) final;
-    void render() final;
+    void render(double t) final;
 
     virtual ~CpuAlgorithmModule();
 
