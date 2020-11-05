@@ -103,25 +103,32 @@ public class SettingsActivity extends AppCompatActivity {
                 }
             });
 
-            if (BuildConfig.DEMO_MODE) {
-                enableDemoMode();
-            }
+            autoFixThings();
         }
 
-        private void enableDemoMode() {
+        private void autoFixThings() {
             // hide non-whitelisted settings and empty categories
             PreferenceScreen screen = getPreferenceScreen();
             for (int i = 0; i < screen.getPreferenceCount(); ++i) {
                 Preference p = screen.getPreference(i);
-                if (DEMO_MODE_SETTINGS_SET.contains(p.getKey())) {
-                    continue;
-                }
                 if (p instanceof PreferenceGroup) {
                     PreferenceGroup group = (PreferenceGroup)p;
                     boolean anyVisible = false;
                     for (int j = 0; j < group.getPreferenceCount(); ++j) {
                         Preference child = group.getPreference(j);
-                        if (DEMO_MODE_SETTINGS_SET.contains(child.getKey())) {
+                        // only allow decimal input to fields whose key ends with _numeric
+                        if (child.getKey().endsWith("_numeric") && child instanceof EditTextPreference) {
+                            EditTextPreference e = (EditTextPreference) child;
+                            e.setOnBindEditTextListener(new EditTextPreference.OnBindEditTextListener() {
+                                @Override
+                                public void onBindEditText(@NonNull EditText editText) {
+                                    editText.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+                                }
+                            });
+                        }
+                        if (!BuildConfig.DEMO_MODE ||
+                                DEMO_MODE_SETTINGS_SET.contains(child.getKey()) ||
+                                DEMO_MODE_SETTINGS_SET.contains(p.getKey())) {
                             anyVisible = true;
                         } else {
                             child.setVisible(false);
