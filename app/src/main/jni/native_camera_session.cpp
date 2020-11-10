@@ -156,7 +156,7 @@ public:
                 int32_t max = supportedFpsRanges.data.i32[i + 1];
                 log_debug("Supported camera FPS range: [%d-%d]", min, max);
                 if (highestRange[0] <= min && highestRange[1] <= max
-                    && (targetFps <= 0 || highestRange[1] <= (int32_t)targetFps)) {
+                    && (targetFps <= 0 || max <= (int32_t)targetFps)) {
                     highestRange[0] = min;
                     highestRange[1] = max;
                 }
