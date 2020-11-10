@@ -33,13 +33,15 @@ public class CameraWorker {
 
     private final CameraParameters mParameters;
     private final Listener mListener;
+    private final int mTargetFps;
     private SurfaceTexture mSurfaceTexture;
     private Surface mSurface; // use member to avoid garbage collection (may not be needed)
     private boolean mHasNewCameraFrame;
 
-    CameraWorker(CameraManager manager, Listener listener) {
+    CameraWorker(CameraManager manager, Listener listener, int targetFps) {
         mListener = listener;
         mParameters = getCamera(manager, listener);
+        mTargetFps = targetFps;
     }
 
     void start() {
@@ -60,7 +62,7 @@ public class CameraWorker {
         });
 
         mSurface = new Surface(mSurfaceTexture);
-        startCameraSession(mParameters.cameraId, mSurface);
+        startCameraSession(mParameters.cameraId, mTargetFps, mSurface);
         mListener.onCaptureStart(mParameters, glTextureIds[0]);
     }
 
@@ -87,7 +89,7 @@ public class CameraWorker {
         stopCameraSession();
     }
 
-    private native void startCameraSession(String cameraId, Surface surface);
+    private native void startCameraSession(String cameraId, int targetFPs, Surface surface);
     private native void stopCameraSession();
 
     public static class CameraParameters {

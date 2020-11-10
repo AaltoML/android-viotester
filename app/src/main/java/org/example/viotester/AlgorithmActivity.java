@@ -214,7 +214,7 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
 
         CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         if (cameraManager == null) throw new RuntimeException("could not access CameraManager");
-        mCameraWorker = new CameraWorker(cameraManager, mAlgorithmWorker);
+        mCameraWorker = new CameraWorker(cameraManager, mAlgorithmWorker, mAlgoWorkerSettings.targetFps);
 
         if (mDirectCameraPreview) {
             mGlSurfaceView.setVisibility(View.GONE);

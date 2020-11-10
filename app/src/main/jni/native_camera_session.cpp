@@ -78,6 +78,7 @@ private:
     ACaptureSessionOutput* output = nullptr;
     ACaptureSessionOutputContainer* outputs = nullptr;
     const std::string cameraId;
+    int targetFps;
 
     ACameraDevice_stateCallbacks cameraDeviceCallbacks = {
             .context = nullptr,
@@ -105,7 +106,7 @@ private:
     };
 
 public:
-    explicit NativeCameraSessionImplementation(const std::string &cameraId) : cameraId(cameraId) {
+    explicit NativeCameraSessionImplementation(const std::string &cameraId, int targetFps) : cameraId(cameraId), targetFps(targetFps) {
         cameraManager = ACameraManager_create();
         ACameraManager_openCamera(cameraManager, cameraId.c_str(), &cameraDeviceCallbacks, &cameraDevice);
     }
@@ -154,13 +155,14 @@ public:
                 int32_t min = supportedFpsRanges.data.i32[i];
                 int32_t max = supportedFpsRanges.data.i32[i + 1];
                 log_debug("Supported camera FPS range: [%d-%d]", min, max);
-                // TODO: Respect targetFps here?
-                if (highestRange[0] <= min && highestRange[1] <= max) {
+                if (highestRange[0] <= min && highestRange[1] <= max
+                    && (targetFps <= 0 || highestRange[1] <= (int32_t)targetFps)) {
                     highestRange[0] = min;
                     highestRange[1] = max;
                 }
             }
             if (highestRange[0] > 0 && highestRange[1] > 0) {
+                log_debug("Using FPS range: [%d-%d]", highestRange[0], highestRange[1]);
                 camera_status = ACaptureRequest_setEntry_i32(request,
                                                              ACAMERA_CONTROL_AE_TARGET_FPS_RANGE,
                                                              2, highestRange);
@@ -191,7 +193,7 @@ public:
 };
 }
 
-std::unique_ptr<NativeCameraSession> NativeCameraSession::create(std::string cameraId) {
-    return std::unique_ptr<NativeCameraSession>(new NativeCameraSessionImplementation(cameraId));
+std::unique_ptr<NativeCameraSession> NativeCameraSession::create(std::string cameraId, int targetFps) {
+    return std::unique_ptr<NativeCameraSession>(new NativeCameraSessionImplementation(cameraId, targetFps));
 }
 NativeCameraSession::~NativeCameraSession() = default;
