@@ -195,6 +195,14 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
             }
 
             @Override
+            public void onAvailableFps(List<String> fpsList) {
+                PreferenceManager.getDefaultSharedPreferences(AlgorithmActivity.this )
+                        .edit()
+                        .putStringSet("fps_set", new TreeSet<>(fpsList))
+                        .apply();
+            }
+
+            @Override
             public void onAvailableCameras(List<String> cameras) {
                 PreferenceManager.getDefaultSharedPreferences(AlgorithmActivity.this )
                         .edit()

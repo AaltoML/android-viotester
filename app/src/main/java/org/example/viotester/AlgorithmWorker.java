@@ -32,6 +32,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         void onStats(String stats, int trackingStatus);
         void onAvailableSizes(Size[] sizes);
         void onAvailableCameras(List<String> cameras);
+        void onAvailableFps(List<String> fps);
         void onRelativeFocalLength(double relativeFocalLength);
     }
 
@@ -280,6 +281,11 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
             return cameras.get(0);
         }
         return mSettings.targetCamera;
+    }
+
+    @Override
+    public void availableFpsRanges(List<String> fps) {
+        mListener.onAvailableFps(fps);
     }
 
     @Override
