@@ -195,6 +195,14 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
             }
 
             @Override
+            public void onAvailableFps(List<String> fpsList) {
+                PreferenceManager.getDefaultSharedPreferences(AlgorithmActivity.this )
+                        .edit()
+                        .putStringSet("fps_set", new TreeSet<>(fpsList))
+                        .apply();
+            }
+
+            @Override
             public void onAvailableCameras(List<String> cameras) {
                 PreferenceManager.getDefaultSharedPreferences(AlgorithmActivity.this )
                         .edit()
@@ -214,7 +222,7 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
 
         CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         if (cameraManager == null) throw new RuntimeException("could not access CameraManager");
-        mCameraWorker = new CameraWorker(cameraManager, mAlgorithmWorker);
+        mCameraWorker = new CameraWorker(cameraManager, mAlgorithmWorker, mAlgoWorkerSettings.targetFps);
 
         if (mDirectCameraPreview) {
             mGlSurfaceView.setVisibility(View.GONE);

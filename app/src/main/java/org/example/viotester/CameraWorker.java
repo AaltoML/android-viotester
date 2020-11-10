@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.util.Log;
+import android.util.Range;
 import android.util.Size;
 import android.view.Surface;
 
@@ -26,6 +27,7 @@ public class CameraWorker {
 
     interface Listener extends SizeChooser {
         String chooseCamera(List<String> cameras);
+        void availableFpsRanges(List<String> fps);
         void onCaptureStart(CameraParameters parameters, int textureId);
         void onFrame(long timestamp);
         void onDraw();
@@ -33,13 +35,15 @@ public class CameraWorker {
 
     private final CameraParameters mParameters;
     private final Listener mListener;
+    private final int mTargetFps;
     private SurfaceTexture mSurfaceTexture;
     private Surface mSurface; // use member to avoid garbage collection (may not be needed)
     private boolean mHasNewCameraFrame;
 
-    CameraWorker(CameraManager manager, Listener listener) {
+    CameraWorker(CameraManager manager, Listener listener, int targetFps) {
         mListener = listener;
         mParameters = getCamera(manager, listener);
+        mTargetFps = targetFps;
     }
 
     void start() {
@@ -60,7 +64,7 @@ public class CameraWorker {
         });
 
         mSurface = new Surface(mSurfaceTexture);
-        startCameraSession(mParameters.cameraId, mSurface);
+        startCameraSession(mParameters.cameraId, mTargetFps, mSurface);
         mListener.onCaptureStart(mParameters, glTextureIds[0]);
     }
 
@@ -87,7 +91,7 @@ public class CameraWorker {
         stopCameraSession();
     }
 
-    private native void startCameraSession(String cameraId, Surface surface);
+    private native void startCameraSession(String cameraId, int targetFPs, Surface surface);
     private native void stopCameraSession();
 
     public static class CameraParameters {
@@ -114,6 +118,7 @@ public class CameraWorker {
     public static CameraParameters getCamera(CameraManager manager, Listener listener) {
         try {
             String cameraId = selectCamera(manager, listener);
+            listener.availableFpsRanges(getSupportedFps(manager, cameraId));
             logCameraParameters(manager, cameraId);
             Size dataSize = selectBestCameraSize(manager, cameraId, listener, SurfaceTexture.class);
             return getCameraParameters(manager, cameraId, dataSize);
@@ -241,6 +246,18 @@ public class CameraWorker {
             }
         }
         return best;
+    }
+
+    private static List<String> getSupportedFps(CameraManager manager, String cameraId) throws CameraAccessException {
+        CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+        Range<Integer>[] fpsRanges = characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
+        List<String> fixedFpsRanges = new ArrayList<>();
+        for (Range<Integer> range : fpsRanges) {
+            if (range.getLower() == range.getUpper()) {
+                fixedFpsRanges.add(Integer.toString(range.getLower()));
+            }
+        }
+        return fixedFpsRanges;
     }
 
     private static String selectCamera(CameraManager manager, Listener listener) throws CameraAccessException {

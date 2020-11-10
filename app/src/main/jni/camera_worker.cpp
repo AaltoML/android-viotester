@@ -15,10 +15,10 @@ MY_JNI_FUNC(void, stopCameraSession)(JNIEnv *env, jobject thiz) {
     cameraSession.reset();
 }
 
-MY_JNI_FUNC(void, startCameraSession)(JNIEnv *env, jobject thiz, jstring cameraId, jobject surface) {
+MY_JNI_FUNC(void, startCameraSession)(JNIEnv *env, jobject thiz, jstring cameraId, jint targetFps, jobject surface) {
     (void)thiz;
     cameraSession.reset();
-    cameraSession = NativeCameraSession::create(getStringOrEmpty(env, cameraId));
+    cameraSession = NativeCameraSession::create(getStringOrEmpty(env, cameraId), targetFps);
     assert(cameraSession);
     cameraSession->initCameraSurface(env, surface);
 }

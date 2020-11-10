@@ -5,7 +5,7 @@
 #include <memory>
 
 struct NativeCameraSession {
-    static std::unique_ptr<NativeCameraSession> create(std::string cameraId);
+    static std::unique_ptr<NativeCameraSession> create(std::string cameraId, int targetFps);
     virtual ~NativeCameraSession();
     virtual void initCameraSurface(JNIEnv* env, jobject surface) = 0;
 };

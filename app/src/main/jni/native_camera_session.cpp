@@ -77,6 +77,8 @@ private:
     ACaptureSessionOutput* textureOutput = nullptr;
     ACaptureSessionOutput* output = nullptr;
     ACaptureSessionOutputContainer* outputs = nullptr;
+    const std::string cameraId;
+    int targetFps;
 
     ACameraDevice_stateCallbacks cameraDeviceCallbacks = {
             .context = nullptr,
@@ -104,7 +106,7 @@ private:
     };
 
 public:
-    explicit NativeCameraSessionImplementation(const std::string &cameraId) {
+    explicit NativeCameraSessionImplementation(const std::string &cameraId, int targetFps) : cameraId(cameraId), targetFps(targetFps) {
         cameraManager = ACameraManager_create();
         ACameraManager_openCamera(cameraManager, cameraId.c_str(), &cameraDeviceCallbacks, &cameraDevice);
     }
@@ -136,6 +138,42 @@ public:
         // Prepare request for texture target
         ACameraDevice_createCaptureRequest(cameraDevice, TEMPLATE_PREVIEW, &request);
 
+        // Find highest supported FPS and use it in camera request
+        ACameraMetadata *cameraMetadata = nullptr;
+        camera_status_t camera_status = ACameraManager_getCameraCharacteristics(cameraManager,
+                                                                                cameraId.c_str(),
+                                                                                &cameraMetadata);
+        if (camera_status != ACAMERA_OK) {
+            log_error("Failed to load camera characteristics %d", camera_status);
+        } else {
+            ACameraMetadata_const_entry supportedFpsRanges;
+            ACameraMetadata_getConstEntry(cameraMetadata,
+                                          ACAMERA_CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES,
+                                          &supportedFpsRanges);
+            int32_t highestRange[2] = {0, 0};
+            for (int32_t i = 0; i < supportedFpsRanges.count; i += 2) {
+                int32_t min = supportedFpsRanges.data.i32[i];
+                int32_t max = supportedFpsRanges.data.i32[i + 1];
+                log_debug("Supported camera FPS range: [%d-%d]", min, max);
+                if (highestRange[0] <= min && highestRange[1] <= max
+                    && (targetFps <= 0 || max <= (int32_t)targetFps)) {
+                    highestRange[0] = min;
+                    highestRange[1] = max;
+                }
+            }
+            if (highestRange[0] > 0 && highestRange[1] > 0) {
+                log_debug("Using FPS range: [%d-%d]", highestRange[0], highestRange[1]);
+                camera_status = ACaptureRequest_setEntry_i32(request,
+                                                             ACAMERA_CONTROL_AE_TARGET_FPS_RANGE,
+                                                             2, highestRange);
+                if (camera_status != ACAMERA_OK) {
+                    log_error("Failed to set FPS range for camera %d", camera_status);
+                }
+            } else {
+                log_error("Failed to find proper FPS range");
+            }
+        }
+
         // Prepare outputs for session
         ACaptureSessionOutput_create(textureWindow, &textureOutput);
         ACaptureSessionOutputContainer_create(&outputs);
@@ -155,7 +193,7 @@ public:
 };
 }
 
-std::unique_ptr<NativeCameraSession> NativeCameraSession::create(std::string cameraId) {
-    return std::unique_ptr<NativeCameraSession>(new NativeCameraSessionImplementation(cameraId));
+std::unique_ptr<NativeCameraSession> NativeCameraSession::create(std::string cameraId, int targetFps) {
+    return std::unique_ptr<NativeCameraSession>(new NativeCameraSessionImplementation(cameraId, targetFps));
 }
 NativeCameraSession::~NativeCameraSession() = default;
