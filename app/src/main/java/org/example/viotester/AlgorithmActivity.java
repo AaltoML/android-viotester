@@ -24,15 +24,16 @@ import java.util.TreeSet;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
 
-public class AlgorithmActivity extends Activity implements GLSurfaceView.Renderer {
+public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceView.Renderer {
     private static final String TAG = AlgorithmActivity.class.getName();
 
     protected GLSurfaceView mGlSurfaceView;
 
     private TextView mStatsTextView;
-    private AlgorithmWorker mAlgorithmWorker;
+    protected AlgorithmWorker mAlgorithmWorker;
     private VisualizationUpdater mVisuUpdater;
 
     private CameraWorker mCameraWorker = null;
@@ -44,6 +45,8 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
     protected boolean mDirectCameraPreview = false;
     protected String mRecordPrefix = "";
     protected String mNativeModule;
+    protected int mContentView = R.layout.viotester_surface_view;
+    protected boolean mGpsRequired = false;
     // TODO: bad, refactor
     protected boolean mDataCollectionMode = false;
 
@@ -139,7 +142,7 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
-        setContentView(R.layout.viotester_surface_view);
+        setContentView(mContentView);
         mStatsTextView = findViewById(R.id.stats_text_view);
         mGlSurfaceView = findViewById(R.id.gl_surface_view);
 
@@ -218,6 +221,17 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
                         .putBoolean("has_auto_focal_length", true)
                         .apply();
             }
+
+            @Override
+            public void onGpsLocationChange(double time, double latitude, double longitude, double altitude, float accuracy) {
+                AlgorithmActivity.this.onGpsLocationChange(time, latitude, longitude, altitude, accuracy);
+            }
+
+            @Override
+            public void onPose(double[] pose) {
+                AlgorithmActivity.this.onPose(pose);
+            }
+
         }, mRecordPrefix);
 
         CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
@@ -291,7 +305,7 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
         s.recordPoses = mDataCollectionMode || (trackingMode && prefs.getBoolean("record_tracking_poses", false));
         s.recordSensors = mDataCollectionMode || (trackingMode && prefs.getBoolean("record_tracking_sensors_and_video", false));
         final boolean recordingSomething = mDataCollectionMode || s.recordPoses;
-        s.recordGps = recordingSomething && prefs.getBoolean("record_gps", false);
+        s.recordGps = (recordingSomething && prefs.getBoolean("record_gps", false)) || mGpsRequired;
         s.recordWiFiLocations = recordingSomething && prefs.getBoolean("record_google_wifi_locations", false);
         s.recordingOnly = mDataCollectionMode;
 
@@ -299,6 +313,14 @@ public class AlgorithmActivity extends Activity implements GLSurfaceView.Rendere
 
         adjustSettings(s);
         return s;
+    }
+
+    protected void onGpsLocationChange(double time, double latitude, double longitude, double altitude, float accuracy) {
+        // For child class to implement
+    }
+
+    protected void onPose(double[] pose) {
+        // For child class to implement
     }
 
     @Override

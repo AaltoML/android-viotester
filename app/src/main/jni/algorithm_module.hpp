@@ -34,6 +34,7 @@ public:
     virtual void addJsonData(const json &json) { (void)json; };
     virtual std::string status() const { return ""; }
     virtual int trackingStatus() { return -1; };
+    virtual bool pose(Pose &pose) { (void)pose; return false; };
 
     // these methods are called from the OpenGL thread
     virtual void addFrame(double t, int cameraInd, double focalLength, double px, double py) = 0;

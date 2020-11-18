@@ -14,6 +14,7 @@ import org.example.viotester.ext_ar.TrackingProvider;
 import org.example.viotester.modules.CalibrationActivity;
 import org.example.viotester.modules.DataCollectionActivity;
 import org.example.viotester.modules.GpuExampleActivity;
+import org.example.viotester.modules.MapOverlayActivity;
 import org.example.viotester.modules.TrackingActivity;
 
 public class MainActivity extends Activity {
@@ -55,6 +56,7 @@ public class MainActivity extends Activity {
 
         if (!BuildConfig.USE_CUSTOM_VIO) {
             findViewById(R.id.btn_tracking).setVisibility(View.GONE);
+            findViewById(R.id.btn_map_overlay).setVisibility(View.GONE);
         }
         if (!BuildConfig.USE_CAMERA_CALIBRATOR) {
             findViewById(R.id.btn_calibration).setVisibility(View.GONE);
@@ -63,6 +65,7 @@ public class MainActivity extends Activity {
             findViewById(R.id.btn_gpu_examples).setVisibility(View.GONE);
         }
         findViewById(R.id.btn_tracking).setOnClickListener(goToActivity(TrackingActivity.class));
+        findViewById(R.id.btn_map_overlay).setOnClickListener(goToActivity(MapOverlayActivity.class));
         findViewById(R.id.btn_data_collection).setOnClickListener(goToActivity(DataCollectionActivity.class));
         findViewById(R.id.btn_calibration).setOnClickListener(goToActivity(CalibrationActivity.class));
         findViewById(R.id.btn_gpu_examples).setOnClickListener(goToActivity(GpuExampleActivity.class));

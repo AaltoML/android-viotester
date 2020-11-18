@@ -43,8 +43,9 @@ android {
         implementation 'org.kamranzafar:jtar:2.2'
         implementation 'org.codehaus.jackson:jackson-mapper-asl:1.9.13'
         // may be needed or ARCore + Location recording may not work... which is VERY SUSPICIOUS
-        implementation 'com.google.android.gms:play-services-location:17.0.0'
-
+        implementation 'com.google.android.gms:play-services-location:17.1.0'
+        implementation 'com.google.android.gms:play-services-maps:17.0.0'
+        implementation 'com.google.maps.android:android-maps-utils:2.1.0'
     }
     externalNativeBuild {
         cmake {

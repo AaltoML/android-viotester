@@ -23,6 +23,16 @@
             style="@style/Widget.AppCompat.Button"/>
 
         <Button
+            android:id="@+id/btn_map_overlay"
+            android:text="Map Overlay"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:textSize="25sp"
+            android:padding="30dp"
+            android:layout_marginTop="20dp"
+            style="@style/Widget.AppCompat.Button"/>
+
+        <Button
             android:id="@+id/btn_alt_tracking_1"
             android:text="ALT tracking 1 placeholder never visible"
             android:layout_height="wrap_content"
