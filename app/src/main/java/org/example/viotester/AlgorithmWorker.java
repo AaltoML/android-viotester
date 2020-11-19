@@ -117,7 +117,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
                 });
             }
             mListener.onGpsLocationChange(
-                    AlgorithmWorker.this.convertTime(t),
+                    convertTime(t),
                     location.getLatitude(), location.getLongitude(),
                     location.getAltitude(), location.getAccuracy());
         }
