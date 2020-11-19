@@ -11,6 +11,7 @@
             android:configChanges="keyboardHidden|orientation"
             android:hardwareAccelerated="true"
             android:label="@string/app_name"
+            android:theme="@style/AppTheme.NoActionBar"
             android:screenOrientation="landscape"/>
         <!-- This tag indicates that this application requires ARCore.  This results in the Google Play
             Store downloading and installing ARCore along with the application. -->
@@ -20,6 +21,7 @@
             android:configChanges="keyboardHidden|orientation"
             android:hardwareAccelerated="true"
             android:label="@string/app_name"
+            android:theme="@style/AppTheme.NoActionBar"
             android:screenOrientation="landscape"/>
         <!-- Requires Huawei AREngine -->
         <meta-data android:name="com.huawei.ar.engine" android:value="required" />

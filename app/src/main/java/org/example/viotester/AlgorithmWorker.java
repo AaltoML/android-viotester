@@ -359,6 +359,10 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
             String statsString = getStatsString();
             statsString += String.format(" %.3g FPS", mProcessedFpsMonitor.getLatestFrequency());
             mListener.onStats(statsString, getTrackingStatus());
+            double[] pose = getPose();
+            if (pose != null) {
+                mListener.onPose(pose);
+            }
         }
     }
 
@@ -439,7 +443,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     private native void drawVisualization(long timeNanos);
     private native String getStatsString(); // TODO: rather call from sensor thread
     private native int getTrackingStatus(); // TODO: rather call from sensor thread
-    public native double[] getPose(); // [t,x,y,z,qx,qy,qz,qw]
+    private native double[] getPose(); // [t,x,y,z,qx,qy,qz,qw]
 
     // --- these are called from the sensor thread (mSensorHandler)
     private native void processGyroSample(long timeNanos, float x, float y, float z);

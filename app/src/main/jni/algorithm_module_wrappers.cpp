@@ -96,8 +96,8 @@ public:
         return statusStruct.textStatus;
     }
 
-    int trackingStatus() final {
-        Lock lock(statusLock);
+    int trackingStatus() const final {
+        Lock lock(const_cast<MutexLockedImplementation*>(this)->statusLock);
         return statusStruct.trackingStatus;
     }
 

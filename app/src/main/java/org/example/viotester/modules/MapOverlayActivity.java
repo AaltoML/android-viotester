@@ -43,9 +43,12 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
     private Aligner aligner;
     private Route gpsRoute;
     private Route trackingRoute;
-    Handler handler = new Handler();
+    Handler handler;
     boolean follow = true;
     Runnable runnable;
+    double[] mPose;
+    boolean poseStale = false;
+    Object poseLock = new Object();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -55,6 +58,9 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
         mGpsRequired = true;
         mContentView = R.layout.viotester_map_view;
         super.onCreate(savedInstanceState);
+
+        handler = new Handler();
+
         SupportMapFragment mapFragment =
                 (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.overlay_map);
         mapFragment.getMapAsync(this);
@@ -178,9 +184,13 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
         handler.postDelayed(runnable = new Runnable() {
             public void run() {
                 handler.postDelayed(runnable, TRACKING_POLL_INTERVAL_MS);
-                double[] pose = mAlgorithmWorker.getPose();
-                if (pose != null && pose[0] > 0.0) {
-                    onPose(pose);
+                synchronized (poseLock) {
+                    if (poseStale) {
+                        if (mPose != null && mPose[0] > 0.0) {
+                            updatePose(mPose.clone());
+                        }
+                        poseStale = false;
+                    }
                 }
             }
         }, TRACKING_POLL_INTERVAL_MS);
@@ -198,7 +208,7 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
         handler.removeCallbacks(runnable);
     }
 
-    protected void onGpsLocationChange(double time, double latitude, double longitude, double altitude, float accuracy) {
+    synchronized protected void onGpsLocationChange(double time, double latitude, double longitude, double altitude, float accuracy) {
         if (googleMap == null) {
             return;
         }
@@ -212,6 +222,13 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
     }
 
     protected void onPose(double[] pose) {
+        synchronized (poseLock) {
+            poseStale = true;
+            mPose = pose;
+        }
+    }
+
+    synchronized private void updatePose(double[] pose) {
         if (googleMap == null || gpsRoute.first() == null) {
             return;
         }

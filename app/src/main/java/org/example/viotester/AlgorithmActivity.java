@@ -224,11 +224,13 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
 
             @Override
             public void onGpsLocationChange(double time, double latitude, double longitude, double altitude, float accuracy) {
+                // AlgorithmActivity.this to avoid calling this function
                 AlgorithmActivity.this.onGpsLocationChange(time, latitude, longitude, altitude, accuracy);
             }
 
             @Override
             public void onPose(double[] pose) {
+                // AlgorithmActivity.this to avoid calling this function
                 AlgorithmActivity.this.onPose(pose);
             }
 
