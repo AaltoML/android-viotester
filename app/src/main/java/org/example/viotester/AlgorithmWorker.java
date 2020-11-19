@@ -30,10 +30,12 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
 
     public interface Listener {
         void onStats(String stats, int trackingStatus);
+        void onPose(double[] pose);
         void onAvailableSizes(Size[] sizes);
         void onAvailableCameras(List<String> cameras);
         void onAvailableFps(List<String> fps);
         void onRelativeFocalLength(double relativeFocalLength);
+        void onGpsLocationChange(double time, double latitude, double longitude, double altitude, float accuracy);
     }
 
     public static class Settings {
@@ -106,12 +108,18 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         public void onLocationChanged(final Location location) {
             final long t = SystemClock.elapsedRealtimeNanos();
             Log.d(TAG, "Location: " + location.getLatitude() + ", " + location.getLongitude() + " (accuracy " + location.getAccuracy() + "m)");
-            mSensorHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    processGpsLocation(t, location.getLatitude(), location.getLongitude(), location.getAltitude(), location.getAccuracy());
-                }
-            });
+            if (mHandlerThread.isAlive()) {
+                mSensorHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        processGpsLocation(t, location.getLatitude(), location.getLongitude(), location.getAltitude(), location.getAccuracy());
+                    }
+                });
+            }
+            mListener.onGpsLocationChange(
+                    convertTime(t),
+                    location.getLatitude(), location.getLongitude(),
+                    location.getAltitude(), location.getAccuracy());
         }
 
         @Override
@@ -351,6 +359,10 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
             String statsString = getStatsString();
             statsString += String.format(" %.3g FPS", mProcessedFpsMonitor.getLatestFrequency());
             mListener.onStats(statsString, getTrackingStatus());
+            double[] pose = getPose();
+            if (pose != null) {
+                mListener.onPose(pose);
+            }
         }
     }
 
@@ -431,6 +443,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     private native void drawVisualization(long timeNanos);
     private native String getStatsString(); // TODO: rather call from sensor thread
     private native int getTrackingStatus(); // TODO: rather call from sensor thread
+    private native double[] getPose(); // [t,x,y,z,qx,qy,qz,qw]
 
     // --- these are called from the sensor thread (mSensorHandler)
     private native void processGyroSample(long timeNanos, float x, float y, float z);
@@ -439,5 +452,6 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     private native void recordPoseMatrix(long timeNanos, float[] viewMatrix, String tag);
     private native void writeInfoFile(String mode, String device);
     private native void writeParamsFile();
+    private native double convertTime(long timeNanos);
     private native void nativeStop();
 }

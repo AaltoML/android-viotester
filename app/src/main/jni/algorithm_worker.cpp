@@ -21,7 +21,7 @@ namespace {
 
     class Clock {
     public:
-        double update(int64_t tNanos) const {
+        double convert(int64_t tNanos) const {
             return (tNanos - t0) * 1e-9 + MARGIN;
         }
 
@@ -33,11 +33,10 @@ namespace {
          * caused by possible unordered samples in the beginning
          */
         static constexpr double MARGIN = 0.01;
-        int64_t t0;
+        const int64_t t0;
     };
 
-    // TODO: not thread-safe
-    Clock doubleClock;
+    std::unique_ptr<Clock> doubleClock;
 }
 
 extern "C" {
@@ -79,7 +78,7 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_configure(
         jstring moduleSettingsJson) {
 
     std::atomic_store(&algorithmPtr, std::shared_ptr<AlgorithmModule>(nullptr));
-    doubleClock = Clock(timeNanos);
+    doubleClock = std::make_unique<Clock>(timeNanos);
 
     frameNumber = 0;
     frameStride = static_cast<int>(frameStrideJint);
@@ -113,7 +112,7 @@ JNIEXPORT jboolean JNICALL Java_org_example_viotester_AlgorithmWorker_processFra
 
     if ((frameNumber++ % frameStride) != 0) return false;
 
-    algorithm->addFrame(doubleClock.update(timeNanos), cameraInd,focalLength, px, py);
+    algorithm->addFrame(doubleClock->convert(timeNanos), cameraInd,focalLength, px, py);
     return true;
 }
 
@@ -123,7 +122,7 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processGyroSam
     auto algorithm = std::atomic_load(&algorithmPtr);
     if (!algorithm) return;
 
-    algorithm->addGyro(doubleClock.update(timeNanos), { x, y, z });
+    algorithm->addGyro(doubleClock->convert(timeNanos), { x, y, z });
 }
 
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processAccSample(
@@ -131,7 +130,7 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processAccSamp
         jlong timeNanos, jfloat x, jfloat y, jfloat z) {
     auto algorithm = std::atomic_load(&algorithmPtr);
     if (!algorithm) return;
-    algorithm->addAcc(doubleClock.update(timeNanos), { x, y, z });
+    algorithm->addAcc(doubleClock->convert(timeNanos), { x, y, z });
 }
 
 JNIEXPORT jstring JNICALL Java_org_example_viotester_AlgorithmWorker_getStatsString(
@@ -148,21 +147,50 @@ JNIEXPORT jint JNICALL Java_org_example_viotester_AlgorithmWorker_getTrackingSta
     return -1;
 }
 
+JNIEXPORT jdoubleArray JNICALL Java_org_example_viotester_AlgorithmWorker_getPose(
+        JNIEnv *env, jobject) {
+    auto algorithm = std::atomic_load(&algorithmPtr);
+    if (algorithm) {
+        recorder::Pose pose;
+        bool hasPose = algorithm->pose(pose);
+        if (!hasPose) {
+            return NULL;
+        }
+        jdoubleArray result = env->NewDoubleArray(8);
+        jdouble buf[8];
+        buf[0] = pose.time;
+        buf[1] = pose.position.x;
+        buf[2] = pose.position.y;
+        buf[3] = pose.position.z;
+        buf[4] = pose.orientation.x;
+        buf[5] = pose.orientation.y;
+        buf[6] = pose.orientation.z;
+        buf[7] = pose.orientation.w;
+        env->SetDoubleArrayRegion(result, 0, 8, buf);
+        return result;
+    }
+    return NULL;
+}
+
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_drawVisualization(JNIEnv *, jobject, jlong timeNanos) {
     auto algorithm = std::atomic_load(&algorithmPtr);
     if (!algorithm) return;
-    algorithm->render(doubleClock.update(timeNanos));
+    algorithm->render(doubleClock->convert(timeNanos));
 }
 
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processGpsLocation(JNIEnv *, jobject, jlong timeNanos, jdouble lat, jdouble lon, jdouble alt, jfloat acc) {
     auto algorithm = std::atomic_load(&algorithmPtr);
     if (!algorithm) return;
-    algorithm->addGps(doubleClock.update(timeNanos), AlgorithmModule::Gps {
+    algorithm->addGps(doubleClock->convert(timeNanos), AlgorithmModule::Gps {
             .latitude = lat,
             .longitude = lon,
             .altitude = alt,
             .accuracy = acc
     });
+}
+
+JNIEXPORT jdouble JNICALL Java_org_example_viotester_AlgorithmWorker_convertTime(JNIEnv *, jobject, jlong timeNanos) {
+    return doubleClock->convert(timeNanos);
 }
 
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_writeInfoFile(
@@ -203,7 +231,7 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processExterna
     (void)frameNumber;
     auto algorithm = std::atomic_load(&algorithmPtr);
     if (!algorithm) return;
-    algorithm->addFrame(doubleClock.update(timeNs), cameraInd, focalLength, ppx, ppy);
+    algorithm->addFrame(doubleClock->convert(timeNs), cameraInd, focalLength, ppx, ppy);
 }
 
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_recordPoseMatrix(JNIEnv *env, jobject, jlong timeNs, jfloatArray pose, jstring tag) {
@@ -215,7 +243,7 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_recordPoseMatr
     Eigen::Matrix4f viewMatrix = Eigen::Map<Eigen::Matrix4f>(poseArr);
     env->ReleaseFloatArrayElements(pose, poseArr, JNI_ABORT);
 
-    const double t = doubleClock.update(timeNs);
+    const double t = doubleClock->convert(timeNs);
 
     const Eigen::Matrix3f R = viewMatrix.block<3, 3>(0, 0);
     const Eigen::Vector3f p = -R.transpose() * viewMatrix.block<3, 1>(0, 3);
