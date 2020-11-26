@@ -305,8 +305,8 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         int height = mCameraParameters.height;
 
         mSettings.focalLengthX = -1;
+        mSettings.focalLengthY = -1;
         if (mCameraParameters.focalLengthX > 0) {
-            float meanFxFy = 0.5f * (mCameraParameters.focalLengthX + mCameraParameters.focalLengthY);
             Log.i(TAG, "focal length from camera API: " + mCameraParameters.focalLengthX + ", " + mCameraParameters.focalLengthY);
             mSettings.focalLengthX = mCameraParameters.focalLengthX;
             mSettings.focalLengthY = mCameraParameters.focalLengthY;
