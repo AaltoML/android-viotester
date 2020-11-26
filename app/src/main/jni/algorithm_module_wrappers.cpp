@@ -41,7 +41,7 @@ void CpuAlgorithmModule::setupRendering(int visuWidth, int visuHeight) {
     }
 }
 
-void CpuAlgorithmModule::addFrame(double t, int cameraInd, double focalLength, double px, double py) {
+void CpuAlgorithmModule::addFrame(double t, const CameraIntrinsics &cam) {
     std::lock_guard<std::mutex> lock(pimpl->mutex);
     GpuCameraAdapter::readChecked(*pimpl->grayTexture, pimpl->grayFrame);
 
@@ -51,7 +51,7 @@ void CpuAlgorithmModule::addFrame(double t, int cameraInd, double focalLength, d
     }
 
     addFrame(t, pimpl->grayFrame, visualizationEnabled ? &pimpl->colorFrame : nullptr,
-             cameraInd, focalLength, px, py, pimpl->visualization);
+             cam, pimpl->visualization);
 
     if (visualizationEnabled) {
         assert(pimpl->renderer);
@@ -101,11 +101,11 @@ public:
         return statusStruct.trackingStatus;
     }
 
-    void addFrame(double t, int cameraInd, double focalLength, double px, double py) final {
+    void addFrame(double t, const CameraIntrinsics &cam) final {
         Status tmpStatus;
         {
             Lock lock(m);
-            p->addFrame(t, cameraInd, focalLength, px, py);
+            p->addFrame(t, cam);
             tmpStatus = {
                 .textStatus = p->status(),
                 .trackingStatus = p->trackingStatus()

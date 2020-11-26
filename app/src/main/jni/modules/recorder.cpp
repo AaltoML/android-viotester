@@ -37,17 +37,18 @@ struct RecordingModule : public CpuAlgorithmModule {
     }
 
     void addFrame(double t, const cv::Mat &grayFrame, cv::Mat *colorFrame,
-                            int cameraInd, double focalLength, double px, double py,
+                            const CameraIntrinsics &cam,
                             cv::Mat &outputColorFrame) final {
         if (recordCamera) {
             assert(colorFrame != nullptr);
             // TODO: render GPU texture directly
             recorder->addFrame(recorder::FrameData {
                     .t = t,
-                    .cameraInd = cameraInd,
-                    .focalLength = focalLength,
-                    .px = px,
-                    .py = py,
+                    .cameraInd = cam.cameraIndex,
+                    .focalLengthX = cam.focalLengthX,
+                    .focalLengthY = cam.focalLengthY,
+                    .px = cam.principalPointX,
+                    .py = cam.principalPointY,
                     .frameData = colorFrame
             });
 

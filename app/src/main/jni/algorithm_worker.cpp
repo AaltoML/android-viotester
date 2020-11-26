@@ -104,7 +104,8 @@ JNIEXPORT jboolean JNICALL Java_org_example_viotester_AlgorithmWorker_processFra
         JNIEnv *, jobject,
         jlong timeNanos,
         jint cameraInd,
-        jfloat focalLength,
+        jfloat fx,
+        jfloat fy,
         jfloat px,
         jfloat py) {
     auto algorithm = std::atomic_load(&algorithmPtr);
@@ -112,7 +113,14 @@ JNIEXPORT jboolean JNICALL Java_org_example_viotester_AlgorithmWorker_processFra
 
     if ((frameNumber++ % frameStride) != 0) return false;
 
-    algorithm->addFrame(doubleClock->convert(timeNanos), cameraInd,focalLength, px, py);
+    AlgorithmModule::CameraIntrinsics cam {
+        .cameraIndex = cameraInd,
+        .focalLengthX = fx,
+        .focalLengthY = fy,
+        .principalPointX = px,
+        .principalPointY = py
+    };
+    algorithm->addFrame(doubleClock->convert(timeNanos), cam);
     return true;
 }
 
@@ -227,11 +235,18 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_writeParamsFil
 }
 
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processExternalImage(JNIEnv *, jobject,
-        jlong timeNs, jlong frameNumber, jint cameraInd, jfloat focalLength, jfloat ppx, jfloat ppy) {
+        jlong timeNs, jlong frameNumber, jint cameraInd, jfloat fx, jfloat fy, jfloat ppx, jfloat ppy) {
     (void)frameNumber;
+    AlgorithmModule::CameraIntrinsics cam {
+            .cameraIndex = cameraInd,
+            .focalLengthX = fx,
+            .focalLengthY = fy,
+            .principalPointX = ppx,
+            .principalPointY = ppy
+    };
     auto algorithm = std::atomic_load(&algorithmPtr);
     if (!algorithm) return;
-    algorithm->addFrame(doubleClock->convert(timeNs), cameraInd, focalLength, ppx, ppy);
+    algorithm->addFrame(doubleClock->convert(timeNs), cam);
 }
 
 JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_recordPoseMatrix(JNIEnv *env, jobject, jlong timeNs, jfloatArray pose, jstring tag) {

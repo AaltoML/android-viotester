@@ -21,6 +21,12 @@ public:
         float accuracy;
     };
 
+    struct CameraIntrinsics {
+        int cameraIndex = 0;
+        float focalLengthX, focalLengthY;
+        float principalPointX, principalPointY;
+    };
+
     // these may be called from the GL thread
     static std::unique_ptr<AlgorithmModule> build(int textureId, int width, int height, const std::string &name, const json *settings = nullptr);
     virtual ~AlgorithmModule() = default;
@@ -37,7 +43,7 @@ public:
     virtual bool pose(Pose &pose) const { (void)pose; return false; };
 
     // these methods are called from the OpenGL thread
-    virtual void addFrame(double t, int cameraInd, double focalLength, double px, double py) = 0;
+    virtual void addFrame(double t, const CameraIntrinsics &cameraIntrinsics) = 0;
 
     /**
      * If this module supports visualizations, initialize visualizations for
@@ -60,10 +66,10 @@ public:
 class CpuAlgorithmModule : public AlgorithmModule {
 public:
     virtual void addFrame(double t, const cv::Mat &grayFrame, cv::Mat *colorFrame,
-                          int cameraInd, double focalLength, double px, double py,
+                          const CameraIntrinsics &cameraIntrinsics,
                           cv::Mat &outputColorFrame) = 0;
 
-    void addFrame(double t, int cameraInd, double focalLength, double px, double py) final;
+    void addFrame(double t, const CameraIntrinsics &cameraIntrinsics) final;
     void setupRendering(int width, int height) final;
     void render(double t) final;
 

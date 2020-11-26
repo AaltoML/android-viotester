@@ -62,7 +62,7 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
                                     int[] dimensions, float[] focalLength, float[] principalPoint) {
         mAlgorithmWorker.logExternalImage(textureId, timeNanos, frameNumber, cameraInd,
                 dimensions[0], dimensions[1],
-                0.5f * (focalLength[0] + focalLength[1]),
+                focalLength[0], focalLength[1],
                 principalPoint[0], principalPoint[1]);
     }
 
@@ -214,10 +214,11 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
             }
 
             @Override
-            public void onRelativeFocalLength(double relFocalLength) {
+            public void onRelativeFocalLength(float relFocalLengthX, float relFocalLengthY) {
                 PreferenceManager.getDefaultSharedPreferences(AlgorithmActivity.this )
                         .edit()
-                        .putString("focal_length_1280", "" + (relFocalLength*1280))
+                        .putString("focal_length_1280_x", "" + (relFocalLengthX*1280))
+                        .putString("focal_length_1280_y", "" + (relFocalLengthY*1280))
                         .putBoolean("has_auto_focal_length", true)
                         .apply();
             }
@@ -280,14 +281,17 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
 
         s.moduleName = mNativeModule;
 
-        String focalLengthString = prefs.getString("focal_length_1280", "-1");
+        String focalLengthStringX = prefs.getString("focal_length_1280_x", "-1");
+        String focalLengthStringY = prefs.getString("focal_length_1280_y", "-1");
         try {
-            float focalLength = Float.parseFloat(focalLengthString);
-            if (focalLength > 0) {
-                s.relativeFocalLength = focalLength / 1280;
+            float focalLengthX = Float.parseFloat(focalLengthStringX);
+            float focalLengthY = Float.parseFloat(focalLengthStringY);
+            if (focalLengthX > 0 && focalLengthY > 0) {
+                s.relativeFocalLengthX = focalLengthX / 1280;
+                s.relativeFocalLengthY = focalLengthY / 1280;
             }
         } catch (IllegalArgumentException e) {
-            Log.w(TAG, "invalid focal length string " + focalLengthString);
+            Log.w(TAG, "invalid focal length string(s) " + focalLengthStringX + " " + focalLengthStringY);
         }
 
         // screen size
