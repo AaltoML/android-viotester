@@ -248,9 +248,9 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
             }
 
             @Override
-            public void onPose(double[] pose) {
+            public void onPose(double[] pose, int trackingStatus) {
                 // AlgorithmActivity.this to avoid calling this function
-                AlgorithmActivity.this.onPose(pose);
+                AlgorithmActivity.this.onPose(pose, trackingStatus);
             }
 
         }, mRecordPrefix);
@@ -340,7 +340,7 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
         // For child class to implement
     }
 
-    protected void onPose(double[] pose) {
+    protected void onPose(double[] pose, int trackingStatus) {
         // For child class to implement
     }
 
