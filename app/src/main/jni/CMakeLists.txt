@@ -19,7 +19,7 @@ if(EXISTS ${ROOT_DIR}/mobile-cv-suite)
     set(MCS_TARGET_DIR ${ROOT_DIR}/mobile-cv-suite)
 else()
     # otherwise download a pre-built release from Github
-    set(MCS_VERSION 1.3.1)
+    set(MCS_VERSION 1.3.2)
     set(MCS_TARGET_DIR ${ROOT_DIR}/app/.cxx/mobile-cv-suite-${MCS_VERSION})
     if(NOT EXISTS ${MCS_TARGET_DIR})
         set(MCS_ARCHIVE_FN ${CMAKE_CURRENT_BINARY_DIR}/mobile-cv-suite.tar-${MCS_VERSION}.gz)
