@@ -237,12 +237,6 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         mGyroMonitor.start();
         mProcessedFpsMonitor.start();
         mGpsListener.start();
-
-        // TODO
-        /*if (!mInitialized && !mSettings.recordCamera) {
-            Log.i(TAG, "dummy initialization with screen dimensions");
-            configure(mSettings.screenWidth, mSettings.screenHeight, mSettings.moduleName, jsonSettings());
-        }*/
     }
 
     public void stop() {

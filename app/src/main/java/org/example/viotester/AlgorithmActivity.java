@@ -52,6 +52,7 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
     protected boolean mDataCollectionMode = false;
 
     protected boolean mUseCameraWorker = false;
+    private boolean isPaused = false;
 
     protected void adjustSettings(AlgorithmWorker.Settings settings) {}
 
@@ -350,18 +351,20 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
         super.onPause();
         mAlgorithmWorker.stop();
         if (mGlSurfaceView != null) mGlSurfaceView.onPause();
+        isPaused = true;
     }
 
     @Override
     public void onResume()
     {
-        // TODO: Pausing&resuming doesn't seem to actually work, preview stays frozen
-
         Log.d(TAG, "onResume");
         super.onResume();
         if (mGlSurfaceView != null) mGlSurfaceView.onResume();
         mAlgorithmWorker.start(); // after System.loadLibrary
-
+        if (isPaused) {
+            mCameraWorker.resume();
+            isPaused = false;
+        }
     }
 
     @Override
