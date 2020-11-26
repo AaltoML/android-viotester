@@ -97,7 +97,8 @@ public class CameraWorker {
     public static class CameraParameters {
         int width;
         int height;
-        float focalLength = -1;
+        float focalLengthX = -1;
+        float focalLengthY = -1;
         float principalPointX = -1;
         float principalPointY = -1;
 
@@ -108,7 +109,9 @@ public class CameraWorker {
             return "camera " + cameraId + ", " +
                     "width: " + width + ", " +
                     "height: " + height + ", " +
-                    "focalLength: " + focalLength + ", " +
+                    "focalLength: (" +
+                    focalLengthX + ", " +
+                    focalLengthY + "), " +
                     "principalPoint: (" +
                     principalPointX + ", " +
                     principalPointY + ")";
@@ -203,10 +206,11 @@ public class CameraWorker {
 
             float relFocalX = fx / nativeWidth;
             float relFocalY = fy / nativeWidth; // width and not height on purpose
-            params.focalLength = 0.5f * (relFocalX + relFocalY) * params.width;
+            params.focalLengthX = relFocalX * params.width;
+            params.focalLengthY = relFocalY * params.width;
 
             Log.d(TAG, "native principal point " + cx + ", " + cy);
-            Log.d(TAG, "focal length " + params.focalLength + " / " + dataSize.getWidth() + " = "
+            Log.d(TAG, "focal length " + params.focalLengthX + ", " + params.focalLengthY + " / " + dataSize.getWidth() + " = "
                     + fx + " / " + pixelArraySize.getWidth());
         }
 

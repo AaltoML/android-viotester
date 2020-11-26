@@ -70,9 +70,9 @@ public:
     }
 
     void addFrame(double t, const cv::Mat &grayMat, cv::Mat *rgbaMat,
-                  int cameraInd, double focalLength, double px, double py,
+                  const CameraIntrinsics &cam,
                   cv::Mat &outputColorFrame) final {
-        (void)cameraInd; (void)focalLength; (void)px; (void)py;
+        (void)cam;
 
         assert(rgbaMat != nullptr);
         assert(!colorMat.empty());

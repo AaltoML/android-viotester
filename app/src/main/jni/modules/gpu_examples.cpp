@@ -365,8 +365,8 @@ struct GpuExampleModule : public AlgorithmModule {
         };
     }
 
-    void addFrame(double t, int cameraInd, double focalLength, double px, double py) final {
-        (void)t; (void)cameraInd; (void)focalLength; (void)px; (void)py;
+    void addFrame(double t, const CameraIntrinsics &cam) final {
+        (void)cam;
         if (cameraProcessor) cameraProcessor();
         processor->processAll();
     }

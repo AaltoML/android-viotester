@@ -34,7 +34,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         void onAvailableSizes(Size[] sizes);
         void onAvailableCameras(List<String> cameras);
         void onAvailableFps(List<String> fps);
-        void onRelativeFocalLength(double relativeFocalLength);
+        void onRelativeFocalLength(float relativeFocalLengthX, float relativeFocalLengthY);
         void onGpsLocationChange(double time, double latitude, double longitude, double altitude, float accuracy);
     }
 
@@ -44,7 +44,8 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         public int targetFps;
         public Size targetImageSize;
         public String targetCamera;
-        public Float relativeFocalLength;
+        public Float relativeFocalLengthX;
+        public Float relativeFocalLengthY;
         public boolean halfFps;
         public boolean useCalibAcc;
         public boolean useCalibGyro;
@@ -72,7 +73,8 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         public boolean recordWiFiLocations = false;
 
         // Do not change these directly
-        public float focalLength = -1;
+        public float focalLengthX = -1;
+        public float focalLengthY = -1;
         public float principalPointX = -1;
         public float principalPointY = -1;
 
@@ -302,15 +304,19 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         int width = mCameraParameters.width;
         int height = mCameraParameters.height;
 
-        mSettings.focalLength = -1;
-        if (mCameraParameters.focalLength > 0) {
-            Log.i(TAG, "focal length from camera API: "+mCameraParameters.focalLength);
-            mSettings.focalLength = mCameraParameters.focalLength;
-            mListener.onRelativeFocalLength(mCameraParameters.focalLength / width);
+        mSettings.focalLengthX = -1;
+        if (mCameraParameters.focalLengthX > 0) {
+            float meanFxFy = 0.5f * (mCameraParameters.focalLengthX + mCameraParameters.focalLengthY);
+            Log.i(TAG, "focal length from camera API: " + mCameraParameters.focalLengthX + ", " + mCameraParameters.focalLengthY);
+            mSettings.focalLengthX = mCameraParameters.focalLengthX;
+            mSettings.focalLengthY = mCameraParameters.focalLengthY;
+            // note: both divided by width on purpose!
+            mListener.onRelativeFocalLength(mSettings.focalLengthX  / width, mSettings.focalLengthY / width);
         }
-        else if (mSettings.relativeFocalLength != null) {
-            Log.i(TAG, "relative focal length from settings: " + mSettings.relativeFocalLength);
-            mSettings.focalLength = mSettings.relativeFocalLength * width;
+        else if (mSettings.relativeFocalLengthX != null) {
+            Log.i(TAG, "relative focal length from settings: " + mSettings.relativeFocalLengthX);
+            mSettings.focalLengthX = mSettings.relativeFocalLengthX * width;
+            mSettings.focalLengthY = mSettings.relativeFocalLengthY * width;
         } else {
             Log.i(TAG, "default focal length");
         }
@@ -350,7 +356,8 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
 
         if (processFrame(timestamp,
                 0, // camera ind
-                mCameraParameters.focalLength,
+                mCameraParameters.focalLengthX,
+                mCameraParameters.focalLengthY,
                 mCameraParameters.principalPointX,
                 mCameraParameters.principalPointY))
         {
@@ -423,22 +430,22 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     }
 
     public void logExternalImage(int textureId, long timeNanos, long frameNumber, int cameraInd,
-                                        int width, int height, float focalLength, float ppx, float ppy) {
+                                        int width, int height, float focalLengthX, float focalLengthY, float ppx, float ppy) {
         if (!mExternalInitialized) {
             configure(timeNanos, width, height, textureId, 1, mSettings.recordPoses, mSettings.moduleName, jsonSettings());
             configureVisualization(mScreenWidth, mScreenHeight);
             mExternalInitialized = true;
         }
 
-        processExternalImage(timeNanos, frameNumber, cameraInd, focalLength, ppx, ppy);
+        processExternalImage(timeNanos, frameNumber, cameraInd, focalLengthX, focalLengthY, ppx, ppy);
     }
 
     // --- these are called from the GL thread
     private native void configureVisualization(int width, int height);
     private native void configure(long timeNanos, int width, int height, int textureId, int frameStride, boolean recordExternalPoses, String moduleName, String settingsJson);
 
-    private native boolean processFrame(long timeNanos, int cameraInd, float focalLength, float px, float py);
-    public native void processExternalImage(long timeNanos, long frameNumber, int cameraInd, float focalLength, float ppx, float ppy);
+    private native boolean processFrame(long timeNanos, int cameraInd, float fx, float fy, float px, float py);
+    public native void processExternalImage(long timeNanos, long frameNumber, int cameraInd, float fx, float fy, float ppx, float ppy);
 
     private native void drawVisualization(long timeNanos);
     private native String getStatsString(); // TODO: rather call from sensor thread
