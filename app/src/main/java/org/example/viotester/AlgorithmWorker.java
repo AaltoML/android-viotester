@@ -29,8 +29,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     private static final String TAG = AlgorithmWorker.class.getName();
 
     public interface Listener {
-        void onStats(String stats, int trackingStatus);
-        void onPose(double[] pose, int trackingStatus);
+        void onOutput(TrackingOutput output);
         void onAvailableSizes(Size[] sizes);
         void onAvailableCameras(List<String> cameras);
         void onAvailableFps(List<String> fps);
@@ -360,11 +359,9 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
             String statsString = getStatsString();
             statsString += String.format(" %.3g FPS", mProcessedFpsMonitor.getLatestFrequency());
             int trackingStatus = getTrackingStatus();
-            mListener.onStats(statsString, trackingStatus);
             double[] pose = getPose();
-            if (pose != null) {
-                mListener.onPose(pose, trackingStatus);
-            }
+            TrackingOutput output = new TrackingOutput(pose, trackingStatus, statsString);
+            mListener.onOutput(output);
         }
     }
 
