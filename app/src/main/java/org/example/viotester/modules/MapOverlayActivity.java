@@ -95,11 +95,17 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
         Log.d(TAG, "onMapReady");
         googleMap = map;
 
+        // Place initial camera to Helsinki
+        final float ZOOM_LEVEL = 0.f;
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                new LatLng(60,25), ZOOM_LEVEL));
+
         IconGenerator ig = new IconGenerator(getApplicationContext());
         ig.setStyle(IconGenerator.STYLE_RED);
         Bitmap bm = ig.makeIcon("GPS");
         Marker gpsMarker = googleMap.addMarker(new MarkerOptions()
                 .alpha(.6f)
+                .visible(false)
                 .position(new LatLng(0,0))
                 .icon(BitmapDescriptorFactory.fromBitmap(bm)));
         gpsRoute = new Route(googleMap.addPolyline(new PolylineOptions().color(GPS_COLOR)), gpsMarker);
@@ -110,6 +116,7 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
         bm = ig.makeIcon("Tracking");
         Marker trackerMarker = googleMap.addMarker(new MarkerOptions()
                 .alpha(.7f)
+                .visible(false)
                 .anchor(ig.getAnchorU(), ig.getAnchorV())
                 .position(new LatLng(0,0))
                 .icon(BitmapDescriptorFactory.fromBitmap(bm))
@@ -170,12 +177,10 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
             b.include(trackingRoute.coords.get(0));
             b.include(trackingRoute.coords.get(trackingRoute.coords.size() - 1));
         }
-        googleMap.moveCamera(CameraUpdateFactory.newLatLngBounds(
+
+        googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(
                 b.build(),
                 paddingPixels));
-//        final float ZOOM_LEVEL = 20.f;
-//        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
-//                gpsRoute.coords.get(gpsRoute.coords.size() - 1), ZOOM_LEVEL));
     }
 
     @Override
@@ -344,6 +349,7 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
         private void updateMap() {
             polyline.setPoints(coords);
             marker.setPosition(coords.get(coords.size() - 1));
+            marker.setVisible(true);
         }
 
         public LatLng first() {
