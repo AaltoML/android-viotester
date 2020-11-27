@@ -33,6 +33,7 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
     protected GLSurfaceView mGlSurfaceView;
 
     private TextView mStatsTextView;
+    private TextView mPopupTextView;
     protected AlgorithmWorker mAlgorithmWorker;
     private VisualizationUpdater mVisuUpdater;
 
@@ -51,6 +52,7 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
     protected boolean mDataCollectionMode = false;
 
     protected boolean mUseCameraWorker = false;
+    private boolean isPaused = false;
 
     protected void adjustSettings(AlgorithmWorker.Settings settings) {}
 
@@ -92,6 +94,7 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
         private long mLastUpdate = 0;
         private static final long UPDATE_INTERVAL_MILLIS = 100;
         private String mAlgoText = "";
+        private String mPopupText = "";
 
         VisualizationUpdater() {
             mUIHandler = new Handler();
@@ -99,6 +102,11 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
 
         void setAlgoStatsText(String text) {
             mAlgoText = text;
+            updateText();
+        }
+
+        void setPopupText(String text) {
+            mPopupText = text;
             updateText();
         }
 
@@ -113,6 +121,12 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
                     public void run() {
                         //Log.d(TAG, "(thread " + android.os.Process.myTid() + ") updating the UI");
                         mStatsTextView.setText(mAlgoText);
+                        if (mPopupText == null || mPopupText.isEmpty()) {
+                            mPopupTextView.setVisibility(View.GONE);
+                        } else {
+                            mPopupTextView.setText(mPopupText);
+                            mPopupTextView.setVisibility(View.VISIBLE);
+                        }
                     }
                 });
                 mLastUpdate = t;
@@ -144,6 +158,7 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
 
         setContentView(mContentView);
         mStatsTextView = findViewById(R.id.stats_text_view);
+        mPopupTextView = findViewById(R.id.middle_popup_view);
         mGlSurfaceView = findViewById(R.id.gl_surface_view);
 
         mVisuUpdater = new VisualizationUpdater();
@@ -178,9 +193,13 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
                 if (showDebugText) {
                     mVisuUpdater.setAlgoStatsText(stats);
                 } else  {
+                    if (trackingStatus == 0) // 0 Init
+                        mVisuUpdater.setPopupText("Initializing tracking, hold device still");
+                    else
+                        mVisuUpdater.setPopupText("");
                     if (trackingStatus == 2) // 2 Lost tracking
                         mVisuUpdater.setAlgoStatsText("Lost tracking");
-                    else // 0 Init, 1 Tracking
+                    else // 1 Tracking
                         mVisuUpdater.setAlgoStatsText("");
                 }
             }
@@ -230,9 +249,9 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
             }
 
             @Override
-            public void onPose(double[] pose) {
+            public void onPose(double[] pose, int trackingStatus) {
                 // AlgorithmActivity.this to avoid calling this function
-                AlgorithmActivity.this.onPose(pose);
+                AlgorithmActivity.this.onPose(pose, trackingStatus);
             }
 
         }, mRecordPrefix);
@@ -325,7 +344,7 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
         // For child class to implement
     }
 
-    protected void onPose(double[] pose) {
+    protected void onPose(double[] pose, int trackingStatus) {
         // For child class to implement
     }
 
@@ -336,18 +355,20 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
         super.onPause();
         mAlgorithmWorker.stop();
         if (mGlSurfaceView != null) mGlSurfaceView.onPause();
+        isPaused = true;
     }
 
     @Override
     public void onResume()
     {
-        // TODO: Pausing&resuming doesn't seem to actually work, preview stays frozen
-
         Log.d(TAG, "onResume");
         super.onResume();
         if (mGlSurfaceView != null) mGlSurfaceView.onResume();
         mAlgorithmWorker.start(); // after System.loadLibrary
-
+        if (isPaused) {
+            mCameraWorker.resume();
+            isPaused = false;
+        }
     }
 
     @Override

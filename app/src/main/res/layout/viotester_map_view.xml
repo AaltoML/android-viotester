@@ -70,4 +70,19 @@
         android:checked="false"
         android:textOff=""
         android:textOn=""/>
+
+    <TextView
+        android:id="@+id/middle_popup_view"
+        android:background="@drawable/rounded_box"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:gravity="center"
+        android:layout_gravity="center"
+        android:textColor="#ffffff"
+        android:shadowColor="#000000"
+        android:shadowRadius="2"
+        android:padding="10dp"
+        android:visibility="gone"
+        android:text="" />
 </FrameLayout>

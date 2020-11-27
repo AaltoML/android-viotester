@@ -30,7 +30,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
 
     public interface Listener {
         void onStats(String stats, int trackingStatus);
-        void onPose(double[] pose);
+        void onPose(double[] pose, int trackingStatus);
         void onAvailableSizes(Size[] sizes);
         void onAvailableCameras(List<String> cameras);
         void onAvailableFps(List<String> fps);
@@ -239,12 +239,6 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         mGyroMonitor.start();
         mProcessedFpsMonitor.start();
         mGpsListener.start();
-
-        // TODO
-        /*if (!mInitialized && !mSettings.recordCamera) {
-            Log.i(TAG, "dummy initialization with screen dimensions");
-            configure(mSettings.screenWidth, mSettings.screenHeight, mSettings.moduleName, jsonSettings());
-        }*/
     }
 
     public void stop() {
@@ -365,10 +359,11 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
 
             String statsString = getStatsString();
             statsString += String.format(" %.3g FPS", mProcessedFpsMonitor.getLatestFrequency());
-            mListener.onStats(statsString, getTrackingStatus());
+            int trackingStatus = getTrackingStatus();
+            mListener.onStats(statsString, trackingStatus);
             double[] pose = getPose();
             if (pose != null) {
-                mListener.onPose(pose);
+                mListener.onPose(pose, trackingStatus);
             }
         }
     }

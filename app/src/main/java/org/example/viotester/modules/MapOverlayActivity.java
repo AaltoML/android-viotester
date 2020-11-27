@@ -36,8 +36,9 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
     private static final float TRACKING_HUE = BitmapDescriptorFactory.HUE_BLUE;
 
     private static final long TRACKING_POLL_INTERVAL_MS = 250;
-    private static final float START_ALIGN_SECONDS = 5.f;
-    private static final float STOP_ALIGN_SECONDS = 15.f;
+    private static final double START_ALIGN_SECONDS = 5.f;
+    private static final double STOP_ALIGN_SECONDS = 15.f;
+    private static final float GPS_ACCURACY_THRESHOLD_METERS = 100.0f;
 
     private GoogleMap googleMap;
     private Aligner aligner;
@@ -49,6 +50,8 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
     double[] mPose;
     boolean poseStale = false;
     Object poseLock = new Object();
+    private double startAlignSeconds;
+    private double stopAlignSeconds;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -112,9 +115,6 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
                 .icon(BitmapDescriptorFactory.fromBitmap(bm))
         );
         trackingRoute = new Route(googleMap.addPolyline(new PolylineOptions().color(TRACKING_COLOR)), trackerMarker);
-
-        aligner = new Aligner(googleMap, START_ALIGN_SECONDS, STOP_ALIGN_SECONDS);
-
 //         test();
     }
 
@@ -209,7 +209,7 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
     }
 
     synchronized protected void onGpsLocationChange(double time, double latitude, double longitude, double altitude, float accuracy) {
-        if (googleMap == null) {
+        if (googleMap == null && accuracy < GPS_ACCURACY_THRESHOLD_METERS) {
             return;
         }
         LatLng newPosition = new LatLng(latitude, longitude);
@@ -221,10 +221,12 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
         }
     }
 
-    protected void onPose(double[] pose) {
+    protected void onPose(double[] pose, int trackingStatus) {
         synchronized (poseLock) {
-            poseStale = true;
-            mPose = pose;
+            if (pose != null && trackingStatus > 0) {
+                poseStale = true;
+                mPose = pose;
+            }
         }
     }
 
@@ -234,13 +236,20 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
         }
         Point p = new Point(-pose[1], pose[2], pose[0]); // Flip X axis
 
+        if (aligner == null) {
+            // Start timings when we have first GPS and Pose coordinates
+            startAlignSeconds = START_ALIGN_SECONDS + pose[0];
+            stopAlignSeconds = STOP_ALIGN_SECONDS + pose[0];
+            aligner = new Aligner(googleMap, startAlignSeconds, stopAlignSeconds);
+        }
+
         boolean updateRequired;
 
-        if (p.time < START_ALIGN_SECONDS) {
+        if (p.time < startAlignSeconds) {
             LatLng newPosition = enuToWgs(gpsRoute.first(), p);
             updateRequired = trackingRoute.addPoint(newPosition, p);
 
-        } else if (p.time > START_ALIGN_SECONDS && p.time < STOP_ALIGN_SECONDS) {
+        } else if (p.time > startAlignSeconds && p.time < stopAlignSeconds) {
             LatLng newPosition = enuToWgs(gpsRoute.first(), p);
             trackingRoute.addPoint(newPosition, p);
             aligner.reset(trackingRoute.points, gpsRoute.points);

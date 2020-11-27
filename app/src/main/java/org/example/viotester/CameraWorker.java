@@ -39,6 +39,7 @@ public class CameraWorker {
     private SurfaceTexture mSurfaceTexture;
     private Surface mSurface; // use member to avoid garbage collection (may not be needed)
     private boolean mHasNewCameraFrame;
+    int[] mGlTextureIds = new int[1];
 
     CameraWorker(CameraManager manager, Listener listener, int targetFps) {
         mListener = listener;
@@ -47,12 +48,9 @@ public class CameraWorker {
     }
 
     void start() {
-        int[] glTextureIds = new int[1];
-        GLES20.glGenTextures(1, glTextureIds, 0);
-        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, glTextureIds[0]);
-
-        mSurfaceTexture = new SurfaceTexture(glTextureIds[0]);
-
+        GLES20.glGenTextures(1, mGlTextureIds, 0);
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mGlTextureIds[0]);
+        mSurfaceTexture = new SurfaceTexture(mGlTextureIds[0]);
         mSurfaceTexture.setDefaultBufferSize(mParameters.width, mParameters.height);
         mSurfaceTexture.setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener() {
             @Override
@@ -62,10 +60,13 @@ public class CameraWorker {
                 }
             }
         });
-
         mSurface = new Surface(mSurfaceTexture);
         startCameraSession(mParameters.cameraId, mTargetFps, mSurface);
-        mListener.onCaptureStart(mParameters, glTextureIds[0]);
+        mListener.onCaptureStart(mParameters, mGlTextureIds[0]);
+    }
+
+    void resume() {
+        mListener.onCaptureStart(mParameters, mGlTextureIds[0]);
     }
 
     void onFrame() {

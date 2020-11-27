@@ -51,13 +51,14 @@
             android:screenOrientation="landscape" />
         <activity
             android:name=".modules.TrackingActivity"
-            android:configChanges="keyboardHidden|orientation"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:hardwareAccelerated="true"
             android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar"
             android:screenOrientation="landscape" />
         <activity
             android:name=".modules.MapOverlayActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:hardwareAccelerated="true"
             android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar"
