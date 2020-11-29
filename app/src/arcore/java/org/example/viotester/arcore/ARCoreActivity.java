@@ -18,6 +18,7 @@ import com.google.ar.core.Frame;
 import com.google.ar.core.PointCloud;
 import com.google.ar.core.Session;
 import com.google.ar.core.TrackingState;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.io.IOException;
 import java.util.EnumSet;
@@ -52,6 +53,7 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
 
     private long frameNumber = 0;
     private int screenWidth, screenHeight;
+    private FirebaseFirestore mFirebaseDB; // hacky solution for RealSense capture remote control
 
     @Override
     public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
@@ -174,12 +176,17 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
         mGlSurfaceView.setWillNotDraw(false); // TODO what is this?
 
         mArCoreInstallRequested = false;
+        mFirebaseDB = FirebaseFirestore.getInstance();
     }
 
     @Override
     public void onPause()
     {
         Log.d(TAG, "onPause");
+
+        if (mFirebaseDB != null) mFirebaseDB.collection("recording_control")
+                .document("1")
+                .update("command", "stop");
         super.onPause();
         if (mArCoreSession != null) mArCoreSession.pause();
     }
@@ -188,6 +195,9 @@ public class ARCoreActivity extends AlgorithmActivity implements GLSurfaceView.R
     public void onResume()
     {
         Log.d(TAG, "onResume");
+        if (mFirebaseDB != null) mFirebaseDB.collection("recording_control")
+                .document("1")
+                .update("command", "start");
         super.onResume();
 
         try {

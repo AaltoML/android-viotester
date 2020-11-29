@@ -17,6 +17,8 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 
+import com.google.firebase.firestore.FirebaseFirestore;
+
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -53,6 +55,7 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
 
     protected boolean mUseCameraWorker = false;
     private boolean isPaused = false;
+    private FirebaseFirestore mFirebaseDB; // hacky solution for RealSense capture remote control
 
     protected void adjustSettings(AlgorithmWorker.Settings settings) {}
 
@@ -183,6 +186,8 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
         if (mAlgoWorkerSettings.recordSensors) {
             mAlgoWorkerSettings.videoRecordingFileName = mDataRecorder.getVideoFileName();
         }
+
+        mFirebaseDB = FirebaseFirestore.getInstance();
 
         final boolean showDebugText = prefs.getBoolean("show_text_debug", true);
         mAlgorithmWorker = new AlgorithmWorker(sensorManager,
@@ -352,6 +357,10 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
     public void onPause()
     {
         Log.d(TAG, "onPause");
+        if (mFirebaseDB != null) mFirebaseDB.collection("recording_control")
+                .document("1")
+                .update("command", "stop");
+
         super.onPause();
         mAlgorithmWorker.stop();
         if (mGlSurfaceView != null) mGlSurfaceView.onPause();
@@ -362,6 +371,11 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
     public void onResume()
     {
         Log.d(TAG, "onResume");
+
+        if (mFirebaseDB != null) mFirebaseDB.collection("recording_control")
+                .document("1")
+                .update("command", "start");
+
         super.onResume();
         if (mGlSurfaceView != null) mGlSurfaceView.onResume();
         mAlgorithmWorker.start(); // after System.loadLibrary
