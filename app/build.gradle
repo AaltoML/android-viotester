@@ -40,6 +40,7 @@ android {
         implementation "com.google.android.material:material:1.2.1"
         implementation 'androidx.preference:preference:1.1.1'
         implementation 'com.google.firebase:firebase-crashlytics:17.2.1'
+        implementation 'com.google.firebase:firebase-firestore:21.4.1'
         implementation 'org.kamranzafar:jtar:2.2'
         implementation 'org.codehaus.jackson:jackson-mapper-asl:1.9.13'
         // may be needed or ARCore + Location recording may not work... which is VERY SUSPICIOUS
