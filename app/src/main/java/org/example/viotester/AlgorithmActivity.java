@@ -189,19 +189,21 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
                 (LocationManager) getSystemService(android.content.Context.LOCATION_SERVICE),
                 mAlgoWorkerSettings, new AlgorithmWorker.Listener() {
             @Override
-            public void onStats(String stats, int trackingStatus) {
+            public void onOutput(TrackingOutput output) {
                 if (showDebugText) {
-                    mVisuUpdater.setAlgoStatsText(stats);
+                    mVisuUpdater.setAlgoStatsText(output.statsString());
                 } else  {
-                    if (trackingStatus == 0) // 0 Init
+                    if (output.status() == TrackingOutput.STATUS_INIT)
                         mVisuUpdater.setPopupText("Initializing tracking, hold device still");
                     else
                         mVisuUpdater.setPopupText("");
-                    if (trackingStatus == 2) // 2 Lost tracking
+                    if (output.status() == TrackingOutput.STATUS_LOST_TRACKING)
                         mVisuUpdater.setAlgoStatsText("Lost tracking");
-                    else // 1 Tracking
+                    else
                         mVisuUpdater.setAlgoStatsText("");
                 }
+
+                AlgorithmActivity.this.onOutput(output);
             }
 
             @Override
@@ -247,13 +249,6 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
                 // AlgorithmActivity.this to avoid calling this function
                 AlgorithmActivity.this.onGpsLocationChange(time, latitude, longitude, altitude, accuracy);
             }
-
-            @Override
-            public void onPose(double[] pose, int trackingStatus) {
-                // AlgorithmActivity.this to avoid calling this function
-                AlgorithmActivity.this.onPose(pose, trackingStatus);
-            }
-
         }, mRecordPrefix);
 
         CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
@@ -344,7 +339,7 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
         // For child class to implement
     }
 
-    protected void onPose(double[] pose, int trackingStatus) {
+    protected void onOutput(TrackingOutput output) {
         // For child class to implement
     }
 

@@ -23,6 +23,7 @@ import com.google.maps.android.ui.IconGenerator;
 
 import org.example.viotester.AlgorithmActivity;
 import org.example.viotester.R;
+import org.example.viotester.TrackingOutput;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +48,7 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
     Handler handler;
     boolean follow = true;
     Runnable runnable;
-    double[] mPose;
+    TrackingOutput mOutput;
     boolean poseStale = false;
     Object poseLock = new Object();
     private double startAlignSeconds;
@@ -95,11 +96,17 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
         Log.d(TAG, "onMapReady");
         googleMap = map;
 
+        // Place initial camera to Helsinki
+        final float ZOOM_LEVEL = 0.f;
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                new LatLng(60,25), ZOOM_LEVEL));
+
         IconGenerator ig = new IconGenerator(getApplicationContext());
         ig.setStyle(IconGenerator.STYLE_RED);
         Bitmap bm = ig.makeIcon("GPS");
         Marker gpsMarker = googleMap.addMarker(new MarkerOptions()
                 .alpha(.6f)
+                .visible(false)
                 .position(new LatLng(0,0))
                 .icon(BitmapDescriptorFactory.fromBitmap(bm)));
         gpsRoute = new Route(googleMap.addPolyline(new PolylineOptions().color(GPS_COLOR)), gpsMarker);
@@ -110,6 +117,7 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
         bm = ig.makeIcon("Tracking");
         Marker trackerMarker = googleMap.addMarker(new MarkerOptions()
                 .alpha(.7f)
+                .visible(false)
                 .anchor(ig.getAnchorU(), ig.getAnchorV())
                 .position(new LatLng(0,0))
                 .icon(BitmapDescriptorFactory.fromBitmap(bm))
@@ -170,12 +178,10 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
             b.include(trackingRoute.coords.get(0));
             b.include(trackingRoute.coords.get(trackingRoute.coords.size() - 1));
         }
-        googleMap.moveCamera(CameraUpdateFactory.newLatLngBounds(
+
+        googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(
                 b.build(),
                 paddingPixels));
-//        final float ZOOM_LEVEL = 20.f;
-//        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
-//                gpsRoute.coords.get(gpsRoute.coords.size() - 1), ZOOM_LEVEL));
     }
 
     @Override
@@ -184,13 +190,15 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
         handler.postDelayed(runnable = new Runnable() {
             public void run() {
                 handler.postDelayed(runnable, TRACKING_POLL_INTERVAL_MS);
+                TrackingOutput newOutput = null;
                 synchronized (poseLock) {
-                    if (poseStale) {
-                        if (mPose != null && mPose[0] > 0.0) {
-                            updatePose(mPose.clone());
-                        }
+                    if (poseStale && mOutput != null) {
+                        newOutput = mOutput;
                         poseStale = false;
                     }
+                }
+                if (newOutput != null) {
+                    updatePose(newOutput);
                 }
             }
         }, TRACKING_POLL_INTERVAL_MS);
@@ -221,25 +229,26 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
         }
     }
 
-    protected void onPose(double[] pose, int trackingStatus) {
-        synchronized (poseLock) {
-            if (pose != null && trackingStatus > 0) {
+    @Override
+    protected void onOutput(TrackingOutput output) {
+        if (output.hasPose() && output.status() != TrackingOutput.STATUS_INIT && output.time() > 0.0) {
+            synchronized (poseLock) {
                 poseStale = true;
-                mPose = pose;
+                mOutput = output;
             }
         }
     }
 
-    synchronized private void updatePose(double[] pose) {
+    synchronized private void updatePose(TrackingOutput output) {
         if (googleMap == null || gpsRoute.first() == null) {
             return;
         }
-        Point p = new Point(-pose[1], pose[2], pose[0]); // Flip X axis
+        Point p = new Point(-output.x(), output.y(), output.time()); // Flip X axis
 
         if (aligner == null) {
             // Start timings when we have first GPS and Pose coordinates
-            startAlignSeconds = START_ALIGN_SECONDS + pose[0];
-            stopAlignSeconds = STOP_ALIGN_SECONDS + pose[0];
+            startAlignSeconds = START_ALIGN_SECONDS + output.time();
+            stopAlignSeconds = STOP_ALIGN_SECONDS + output.time();
             aligner = new Aligner(googleMap, startAlignSeconds, stopAlignSeconds);
         }
 
@@ -344,6 +353,7 @@ public class MapOverlayActivity extends AlgorithmActivity implements OnMapReadyC
         private void updateMap() {
             polyline.setPoints(coords);
             marker.setPosition(coords.get(coords.size() - 1));
+            marker.setVisible(true);
         }
 
         public LatLng first() {
