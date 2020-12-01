@@ -174,6 +174,11 @@ public:
             }
         }
 
+        const int32_t cameraIntent = ACAMERA_CONTROL_CAPTURE_INTENT_MOTION_TRACKING;
+        camera_status = ACaptureRequest_setEntry_i32(request,ACAMERA_CONTROL_CAPTURE_INTENT,1, &cameraIntent);
+        // tracking seems to work OK even if this fails on the phones that don't support the feature
+        if (camera_status != ACAMERA_OK) log_warn("Failed to set capture intent to motion tracking");
+
         // Prepare outputs for session
         ACaptureSessionOutput_create(textureWindow, &textureOutput);
         ACaptureSessionOutputContainer_create(&outputs);
