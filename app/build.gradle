@@ -34,19 +34,6 @@ android {
             }
         }
     }
-    dependencies {
-        // needed by permission helper
-        implementation 'androidx.appcompat:appcompat:1.2.0'
-        implementation "com.google.android.material:material:1.2.1"
-        implementation 'androidx.preference:preference:1.1.1'
-        implementation 'com.google.firebase:firebase-crashlytics:17.2.1'
-        implementation 'org.kamranzafar:jtar:2.2'
-        implementation 'org.codehaus.jackson:jackson-mapper-asl:1.9.13'
-        // may be needed or ARCore + Location recording may not work... which is VERY SUSPICIOUS
-        implementation 'com.google.android.gms:play-services-location:17.1.0'
-        implementation 'com.google.android.gms:play-services-maps:17.0.0'
-        implementation 'com.google.maps.android:android-maps-utils:2.1.0'
-    }
     externalNativeBuild {
         cmake {
             path "src/main/jni/CMakeLists.txt"
@@ -78,46 +65,25 @@ android {
                 }
             }
         }
-        // Note that native libs from ALL build variants end up in your APK,
-        // at least in the time of writing so the build variants need to be removed
-        // you want to avoid that. Android Gradle Plugin is a moving target so the situation may
-        // be different in a couple of months (check again if this is needed after some time)
-        if (!project.hasProperty('STRIP_EXTERNAL_AR')) {
-            arcore {
-                dimension "mode"
-                versionNameSuffix "-arcore"
-                dependencies {
-                    // ARCore library
-                    implementation 'com.google.ar:core:1.19.0'
-                }
-            }
-            arengine {
-                dimension "mode"
-                versionNameSuffix "-arengine"
-                dependencies {
-                    // AREngine from Huawei
-                    implementation 'com.huawei.hms:arenginesdk:2.13.0.4'
-                }
-                repositories {
-                    maven {
-                        url 'https://developer.huawei.com/repo/' // AREngine from Huawei
-                    }
-                }
-            }
-            arcoreandengine {
-                dimension "mode"
-                versionNameSuffix "-arcore-arengine"
-                dependencies {
-                    implementation 'com.google.ar:core:1.19.0'
-                    implementation 'com.huawei.hms:arenginesdk:2.13.0.4'
-                }
-                repositories {
-                    maven {
-                        url 'https://developer.huawei.com/repo/' // AREngine from Huawei
-                    }
+
+        arcore {
+            dimension "mode"
+            versionNameSuffix "-arcore"
+        }
+        arengine {
+            dimension "mode"
+            versionNameSuffix "-arengine"
+        }
+        arcoreandengine {
+            dimension "mode"
+            versionNameSuffix "-arcore-arengine"
+            repositories { // applies to all build variants
+                maven {
+                    url 'https://developer.huawei.com/repo/' // AREngine from Huawei
                 }
             }
         }
+
         research {
             dimension "type"
             buildConfigField "boolean", "DEMO_MODE", "false"
@@ -141,6 +107,26 @@ android {
             //applicationIdSuffix ".demo"
         }
 
+    }
+
+    dependencies {
+        // needed by permission helper
+        implementation 'androidx.appcompat:appcompat:1.2.0'
+        implementation "com.google.android.material:material:1.2.1"
+        implementation 'androidx.preference:preference:1.1.1'
+        implementation 'com.google.firebase:firebase-crashlytics:17.2.1'
+        implementation 'org.kamranzafar:jtar:2.2'
+        implementation 'org.codehaus.jackson:jackson-mapper-asl:1.9.13'
+        // may be needed or ARCore + Location recording may not work... which is VERY SUSPICIOUS
+        implementation 'com.google.android.gms:play-services-location:17.1.0'
+        implementation 'com.google.android.gms:play-services-maps:17.0.0'
+        implementation 'com.google.maps.android:android-maps-utils:2.1.0'
+
+        arcoreImplementation 'com.google.ar:core:1.21.0'
+        arcoreandengineImplementation 'com.google.ar:core:1.21.0'
+
+        arengineImplementation 'com.huawei.hms:arenginesdk:2.13.0.4'
+        arcoreandengineImplementation 'com.huawei.hms:arenginesdk:2.13.0.4'
     }
 
     // delete large DBoW2 file for the non-SLAM build
