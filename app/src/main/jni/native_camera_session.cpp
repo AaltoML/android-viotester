@@ -172,6 +172,23 @@ public:
             } else {
                 log_error("Failed to find proper FPS range");
             }
+
+            ACameraMetadata_const_entry entry;
+            ACameraMetadata_getConstEntry(cameraMetadata,
+                                          ACAMERA_REQUEST_AVAILABLE_CAPABILITIES,
+                                          &entry);
+
+            bool motionTrackingSupported = false;
+            for (int32_t i = 0; i < (int32_t)entry.count; i++)
+                if (entry.data.u8[i] == ACAMERA_REQUEST_AVAILABLE_CAPABILITIES_MOTION_TRACKING)
+                    motionTrackingSupported = true;
+            if (motionTrackingSupported) {
+                const int32_t cameraIntent = ACAMERA_CONTROL_CAPTURE_INTENT_MOTION_TRACKING;
+                camera_status = ACaptureRequest_setEntry_i32(request,ACAMERA_CONTROL_CAPTURE_INTENT,1, &cameraIntent);
+                if (camera_status != ACAMERA_OK) log_warn("Failed to set capture intent to motion tracking");
+            } else {
+                log_info("Motion tracking intent not supported on this device");
+            }
         }
 
         // Prepare outputs for session
