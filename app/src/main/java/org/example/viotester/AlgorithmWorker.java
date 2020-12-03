@@ -155,6 +155,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     private CameraWorker.CameraParameters mCameraParameters = null;
     private int mScreenWidth = -1, mScreenHeight = -1;
     private boolean mExternalInitialized = false;
+    private boolean running = false;
 
     //private final static int GYRO_SENSOR = Sensor.TYPE_GYROSCOPE_UNCALIBRATED;
     private final int mGyroSensor;
@@ -222,7 +223,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         });
     }
 
-    public void start() {
+    synchronized public void start() {
         Log.d(TAG, "start");
 
         mHandlerThread = new HandlerThread("NativeHandler", Thread.MAX_PRIORITY);
@@ -238,9 +239,10 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         mGyroMonitor.start();
         mProcessedFpsMonitor.start();
         mGpsListener.start();
+        running = true;
     }
 
-    public void stop() {
+    synchronized public void stop() {
         Log.d(TAG, "stop");
         mSensorManager.unregisterListener(this);
         mAccMonitor.stop();
@@ -254,6 +256,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
             }
         });
         mExternalInitialized = false;
+        running = false;
 
         mHandlerThread.quitSafely();
         try {
@@ -379,7 +382,8 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        //Log.d(TAG, "(thread " + android.os.Process.myTid() + ") processing a sensor event");
+//        Log.d(TAG, "(thread " + android.os.Process.myTid() + ") processing a sensor event "
+//                + event.timestamp);
         switch (event.sensor.getType()) {
             case Sensor.TYPE_ACCELEROMETER:
             case Sensor.TYPE_ACCELEROMETER_UNCALIBRATED:
@@ -421,8 +425,13 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         });
     }
 
-    public void logExternalImage(int textureId, long timeNanos, long frameNumber, int cameraInd,
+    synchronized void logExternalImage(int textureId, long timeNanos, long frameNumber, int cameraInd,
                                         int width, int height, float focalLengthX, float focalLengthY, float ppx, float ppy) {
+        if (!running) {
+            // logExternalImage() is often called after stop(), this prevents it breaking anything
+            Log.w(TAG, "start() must be called before using AlgorithmWorker!");
+            return;
+        }
         if (!mExternalInitialized) {
             configure(timeNanos, width, height, textureId, 1, mSettings.recordPoses, mSettings.moduleName, jsonSettings());
             configureVisualization(mScreenWidth, mScreenHeight);
