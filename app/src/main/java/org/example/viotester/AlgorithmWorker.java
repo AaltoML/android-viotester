@@ -66,6 +66,8 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         public String parametersFileName;
         @Nullable
         public String videoRecordingFileName;
+        @Nullable
+        public String filesDir;
 
         public boolean recordingOnly = false;
         public boolean recordGps = false;

@@ -78,9 +78,15 @@
             app:defaultValue="false">
         </SwitchPreference>
         <SwitchPreference
-            app:key="record_tracking_sensors_and_video"
-            app:title="Tracking: Record sensors &amp; video"
-            app:summary="Warning: exprimental. May result to skipped frames and bad data compared to using the data recording mode"
+            app:key="record_tracking_sensors"
+            app:title="Record sensors"
+            app:summary="Record IMU sensors while tracking or collecting data"
+            app:defaultValue="false">
+        </SwitchPreference>
+        <SwitchPreference
+            app:key="record_tracking_video"
+            app:title="Record video"
+            app:summary="Record video while tracking or collecting data"
             app:defaultValue="false">
         </SwitchPreference>
         <SwitchPreference
