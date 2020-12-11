@@ -183,6 +183,7 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
         if (mAlgoWorkerSettings.recordSensors) {
             mAlgoWorkerSettings.videoRecordingFileName = mDataRecorder.getVideoFileName();
         }
+        mAlgoWorkerSettings.filesDir = getExternalFilesDir(null).getAbsolutePath(); // getFilesDir().getAbsolutePath();
 
         final boolean showDebugText = prefs.getBoolean("show_text_debug", true);
         mAlgorithmWorker = new AlgorithmWorker(sensorManager,
@@ -320,11 +321,10 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
             s.orbVocabularyFilename = prefs.getString(AssetCopier.ASSET_PATH_KEY_ORB_VOCABULARY, null);
         }
 
-        final boolean trackingMode = !mDataCollectionMode;
-        s.recordCamera =  !trackingMode || prefs.getBoolean("record_tracking_sensors_and_video", false);
-        s.recordPoses = mDataCollectionMode || (trackingMode && prefs.getBoolean("record_tracking_poses", false));
-        s.recordSensors = mDataCollectionMode || (trackingMode && prefs.getBoolean("record_tracking_sensors_and_video", false));
-        final boolean recordingSomething = mDataCollectionMode || s.recordPoses;
+        s.recordCamera = prefs.getBoolean("record_tracking_video", false);
+        s.recordPoses = prefs.getBoolean("record_tracking_poses", false);
+        s.recordSensors = prefs.getBoolean("record_tracking_sensors", false);
+        final boolean recordingSomething = s.recordCamera || s.recordPoses || s.recordSensors;
         s.recordGps = (recordingSomething && prefs.getBoolean("record_gps", false)) || mGpsRequired;
         s.recordWiFiLocations = recordingSomething && prefs.getBoolean("record_google_wifi_locations", false);
         s.recordingOnly = mDataCollectionMode;
