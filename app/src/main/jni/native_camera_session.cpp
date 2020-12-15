@@ -66,6 +66,19 @@ namespace camCallbacks {
     }
 }
 
+bool hasCapability(const ACameraMetadata_const_entry &capabilities, int32_t checkSymbol) {
+    for (int32_t i = 0; i < (int32_t)capabilities.count; i++)
+        if (capabilities.data.u8[i] == checkSymbol) return true;
+    return false;
+}
+
+void setCameraFlag(ACaptureRequest* request, uint32_t setSymbol, uint8_t setValue, const char *friendlyName) {
+    const uint8_t cameraIntent = setValue;
+    const auto status = ACaptureRequest_setEntry_u8(request, setSymbol, 1, &cameraIntent);
+    if (status != ACAMERA_OK) log_warn("Failed to set camera %s", friendlyName);
+    log_info("Successfully set camera %s", friendlyName);
+}
+
 class NativeCameraSessionImplementation : public NativeCameraSession {
 private:
     ACameraManager* cameraManager = nullptr;
@@ -172,24 +185,32 @@ public:
             } else {
                 log_error("Failed to find proper FPS range");
             }
-
-            ACameraMetadata_const_entry entry;
-            ACameraMetadata_getConstEntry(cameraMetadata,
-                                          ACAMERA_REQUEST_AVAILABLE_CAPABILITIES,
-                                          &entry);
-
-            bool motionTrackingSupported = false;
-            for (int32_t i = 0; i < (int32_t)entry.count; i++)
-                if (entry.data.u8[i] == ACAMERA_REQUEST_AVAILABLE_CAPABILITIES_MOTION_TRACKING)
-                    motionTrackingSupported = true;
-            if (motionTrackingSupported) {
-                const int32_t cameraIntent = ACAMERA_CONTROL_CAPTURE_INTENT_MOTION_TRACKING;
-                camera_status = ACaptureRequest_setEntry_i32(request,ACAMERA_CONTROL_CAPTURE_INTENT,1, &cameraIntent);
-                if (camera_status != ACAMERA_OK) log_warn("Failed to set capture intent to motion tracking");
-            } else {
-                log_info("Motion tracking intent not supported on this device");
-            }
         }
+
+        ACameraMetadata_const_entry capabilities;
+        ACameraMetadata_getConstEntry(cameraMetadata,
+                                      ACAMERA_REQUEST_AVAILABLE_CAPABILITIES,
+                                      &capabilities);
+
+        if (hasCapability(capabilities, ACAMERA_REQUEST_AVAILABLE_CAPABILITIES_MOTION_TRACKING)) {
+            setCameraFlag(request,
+                          ACAMERA_CONTROL_CAPTURE_INTENT,
+                          ACAMERA_CONTROL_CAPTURE_INTENT_MOTION_TRACKING,
+                          "motion tracking");
+        } else {
+            log_info("Camera motion tracking intent is not supported on this device");
+        }
+
+        // not checking if video stabilization mode "OFF" is available
+        setCameraFlag(request,
+                ACAMERA_CONTROL_VIDEO_STABILIZATION_MODE,
+                ACAMERA_CONTROL_VIDEO_STABILIZATION_MODE_OFF,
+                "video stabilization");
+
+        setCameraFlag(request,
+                ACAMERA_LENS_OPTICAL_STABILIZATION_MODE,
+                ACAMERA_LENS_OPTICAL_STABILIZATION_MODE_OFF,
+                "OIS");
 
         // Prepare outputs for session
         ACaptureSessionOutput_create(textureWindow, &textureOutput);
