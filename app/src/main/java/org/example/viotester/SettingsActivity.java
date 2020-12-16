@@ -1,5 +1,6 @@
 package org.example.viotester;
 
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.InputType;
