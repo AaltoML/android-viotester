@@ -28,7 +28,7 @@ if [ -f "$INTEGRATION_PREFS" ]; then
   sed "s_<resources>__g" < "$INTEGRATION_ARRAYS" >> "$ROOT_ARRAYS"
 else
   echo "no custom preferences using preferences as-is"
-  cat < preferences.xml >> "$ROOT_PREFS"
+  sed "s_</PreferenceScreen>__g" < preferences.xml >> "$ROOT_PREFS"
   cat < arrays.xml >> "$ROOT_ARRAYS"
 fi
 cat < reset.xml >> "$ROOT_PREFS"
