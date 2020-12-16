@@ -29,6 +29,8 @@ public class SettingsActivity extends AppCompatActivity {
     static private final String DEFAULT_FPS = "30";
 
     static String[] DEMO_MODE_SETTINGS = {
+            "target_size",
+            "fps",
             "visualization",
             "overlay_visualization",
             "reset_preferences"
