@@ -24,7 +24,7 @@ import androidx.preference.PreferenceManager;
 import androidx.preference.PreferenceScreen;
 
 public class SettingsActivity extends AppCompatActivity {
-    static private final String DEFAULT_RESO = "640x480";
+    static private final String DEFAULT_RESO = "1280x720";
     static private final String DEFAULT_FPS = "30";
 
     static String[] DEMO_MODE_SETTINGS = {

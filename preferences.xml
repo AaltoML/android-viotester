@@ -27,7 +27,7 @@
             app:useSimpleSummaryProvider="true" />
 
         <ListPreference
-            app:defaultValue="640x480"
+            app:defaultValue="1280x720"
             app:entries="@array/placeholders"
             app:entryValues="@array/placeholders"
             app:key="target_size"
@@ -51,7 +51,7 @@
         <SwitchPreference
             app:key="half_fps"
             app:title="Half FPS mode"
-            app:defaultValue="true" />
+            app:defaultValue="false" />
 
         <SwitchPreference
             app:key="use_calib_acc"
@@ -108,9 +108,4 @@
             app:defaultValue="false">
         </SwitchPreference>
     </PreferenceCategory>
-
-    <Preference
-        android:title=""
-        android:key="reset_preferences"
-        android:summary="Reset Preferences"/>
 </PreferenceScreen>

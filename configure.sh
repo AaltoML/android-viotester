@@ -22,7 +22,7 @@ if [ -f "$INTEGRATION_PREFS" ]; then
   # Every piece in Android Gradle Plugin and the XML settings mechanism seems to be
   # actively working to prevent doing this any other way
   sed "s_</PreferenceScreen>__g" < preferences.xml >> "$ROOT_PREFS"
-  sed "s_<PreferenceScreen>__g" < "$INTEGRATION_PREFS" >> "$ROOT_PREFS"
+  sed "s_<PreferenceScreen>__g" < "$INTEGRATION_PREFS" | sed "s_</PreferenceScreen>__g" >> "$ROOT_PREFS"
 
   sed "s_</resources>__g" < arrays.xml >> "$ROOT_ARRAYS"
   sed "s_<resources>__g" < "$INTEGRATION_ARRAYS" >> "$ROOT_ARRAYS"
@@ -31,5 +31,6 @@ else
   cat < preferences.xml >> "$ROOT_PREFS"
   cat < arrays.xml >> "$ROOT_ARRAYS"
 fi
+cat < reset.xml >> "$ROOT_PREFS"
 printf "$WARN_BANNER" >> "$ROOT_PREFS"
 printf "$WARN_BANNER" >> "$ROOT_ARRAYS"
