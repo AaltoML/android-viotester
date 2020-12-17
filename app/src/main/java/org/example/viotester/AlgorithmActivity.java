@@ -280,7 +280,7 @@ public class AlgorithmActivity extends AppCompatActivity implements GLSurfaceVie
         s.targetCamera = prefs.getString("target_camera", "0");
 
         s.halfFps = prefs.getBoolean("half_fps", false);
-        s.targetFps = Integer.parseInt(prefs.getString("fps", "15"));
+        s.targetFps = Integer.parseInt(prefs.getString("fps", "30"));
         if (s.halfFps) s.targetFps /= 2;
 
         Size def = new Size(1280,720);

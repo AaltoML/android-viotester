@@ -1,5 +1,6 @@
 package org.example.viotester;
 
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.InputType;
@@ -24,10 +25,12 @@ import androidx.preference.PreferenceManager;
 import androidx.preference.PreferenceScreen;
 
 public class SettingsActivity extends AppCompatActivity {
-    static private final String DEFAULT_RESO = "640x480";
+    static private final String DEFAULT_RESO = "1280x720";
     static private final String DEFAULT_FPS = "30";
 
     static String[] DEMO_MODE_SETTINGS = {
+            "target_size",
+            "fps",
             "visualization",
             "overlay_visualization",
             "reset_preferences"
@@ -37,17 +40,10 @@ public class SettingsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(SettingsActivity.this );
         setContentView(R.layout.settings_activity);
         getSupportFragmentManager()
                 .beginTransaction()
-                .replace(R.id.settings, new SettingsFragment(
-                        prefs.getStringSet("camera_set", new TreeSet<String>()),
-                        prefs.getStringSet("resolution_set", new TreeSet<String>()),
-                        prefs.getStringSet("fps_set", new TreeSet<String>()),
-                        prefs.getBoolean("has_auto_focal_length", false),
-                        prefs.getBoolean(AssetCopier.HAS_SLAM_FILES_KEY, false) && BuildConfig.USE_SLAM
-                ))
+                .replace(R.id.settings, new SettingsFragment())
                 .commit();
     }
 
@@ -63,18 +59,21 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     public static class SettingsFragment extends PreferenceFragmentCompat {
-        private final Set<String> mCameraSet;
-        private final Set<String> mResolutionSet;
-        private final Set<String> mFpsSet;
-        private final boolean mHasAutoFocalLength;
-        private final boolean mSlamPossible;
+        private Set<String> mCameraSet;
+        private Set<String> mResolutionSet;
+        private Set<String> mFpsSet;
+        private boolean mHasAutoFocalLength;
+        private boolean mSlamPossible;
 
-        SettingsFragment(Set<String> cameraSet, Set<String> resolutionSet, Set<String> fpsSet, boolean hasAutoFocalLength, boolean slamPossible) {
-            mCameraSet = cameraSet;
-            mResolutionSet = resolutionSet;
-            mHasAutoFocalLength = hasAutoFocalLength;
-            mSlamPossible = slamPossible;
-            mFpsSet = fpsSet;
+        @Override
+        public void onAttach(@NonNull Context context) {
+            super.onAttach(context);
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+            mCameraSet = prefs.getStringSet("camera_set", new TreeSet<String>());
+            mResolutionSet = prefs.getStringSet("resolution_set", new TreeSet<String>());
+            mFpsSet = prefs.getStringSet("fps_set", new TreeSet<String>());
+            mHasAutoFocalLength = prefs.getBoolean("has_auto_focal_length", false);
+            mSlamPossible = prefs.getBoolean(AssetCopier.HAS_SLAM_FILES_KEY, false) && BuildConfig.USE_SLAM;
         }
 
         @Override

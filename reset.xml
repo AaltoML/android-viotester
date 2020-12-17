@@ -1,0 +1,7 @@
+    <PreferenceCategory app:title="Reset" app:key="category_reset">
+        <Preference
+            android:title=""
+            android:key="reset_preferences"
+            android:summary="Reset all preferences to defaults"/>
+    </PreferenceCategory>
+</PreferenceScreen>
