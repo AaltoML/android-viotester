@@ -110,8 +110,8 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         }
 
         void stop() {
+            if (mSettings.recordGps) locationManager.unregisterGnssMeasurementsCallback(this);
             if (mSettings.recordGps || mSettings.recordWiFiLocations) {
-                locationManager.unregisterGnssMeasurementsCallback(this);
                 locationManager.removeUpdates(this);
             }
         }
