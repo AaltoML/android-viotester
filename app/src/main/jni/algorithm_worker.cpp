@@ -197,6 +197,21 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processGpsLoca
     });
 }
 
+JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_processGpsTime(JNIEnv *, jobject, jlong timeNanos, jdouble gpsTimeUtcSeconds) {
+    auto algorithm = std::atomic_load(&algorithmPtr);
+    if (!algorithm) return;
+    const double t = doubleClock->convert(timeNanos);
+    algorithm->addJsonData(
+            AlgorithmModule::json {
+                    { "time", t },
+                    { "gpsTime",
+                              {
+                                      { "utcSeconds", gpsTimeUtcSeconds }
+                              }
+                    }
+            });
+}
+
 JNIEXPORT jdouble JNICALL Java_org_example_viotester_AlgorithmWorker_convertTime(JNIEnv *, jobject, jlong timeNanos) {
     return doubleClock->convert(timeNanos);
 }

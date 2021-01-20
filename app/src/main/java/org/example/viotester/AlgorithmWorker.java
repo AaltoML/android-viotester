@@ -4,9 +4,12 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.location.GnssClock;
+import android.location.GnssMeasurement;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.location.GnssMeasurementsEvent;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -21,6 +24,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import org.codehaus.jackson.annotate.JsonRawValue;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -83,7 +87,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         public Map<String, ?> allPrefs;
     }
 
-    private class GpsListener implements LocationListener {
+    private class GpsListener extends GnssMeasurementsEvent.Callback implements LocationListener {
         private final LocationManager locationManager;
 
         GpsListener(LocationManager m) {
@@ -92,8 +96,11 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
 
         void start() {
             try {
-            if (mSettings.recordGps)
+            if (mSettings.recordGps) {
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+                locationManager.registerGnssMeasurementsCallback(this);
+            }
+
             if (mSettings.recordWiFiLocations)
                 locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
             } catch (SecurityException e) {
@@ -103,8 +110,28 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         }
 
         void stop() {
-            if (mSettings.recordGps || mSettings.recordWiFiLocations)
+            if (mSettings.recordGps || mSettings.recordWiFiLocations) {
+                locationManager.unregisterGnssMeasurementsCallback(this);
                 locationManager.removeUpdates(this);
+            }
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.Q)
+        @Override
+        public void onGnssMeasurementsReceived(GnssMeasurementsEvent event) {
+            Log.d(TAG, "onGnssMeasurementsReceived");
+            GnssClock clock = event.getClock();
+            if (clock.hasBiasNanos() && clock.hasFullBiasNanos() && clock.hasLeapSecond() && clock.hasElapsedRealtimeNanos()) {
+                // Use elapsedRealtimeNanos from GnssClock
+                long elapsedRealtimeNanos = clock.getElapsedRealtimeNanos();
+                // Formula: https://developer.android.com/reference/kotlin/android/location/GnssClock#getleapsecond
+                double biasNanos = clock.getBiasNanos();
+                long fullBiasNanos = clock.getFullBiasNanos();
+                long timeNanos  = clock.getTimeNanos();
+                int leapSecond = clock.getLeapSecond();
+                double utcGpsTimeSeconds = (timeNanos - (fullBiasNanos + biasNanos) - leapSecond * 1e9) * 1e-9;
+                processGpsTime(elapsedRealtimeNanos, utcGpsTimeSeconds);
+            }
         }
 
         @Override
@@ -459,6 +486,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
     private native void processGyroSample(long timeNanos, float x, float y, float z);
     private native void processAccSample(long timeNanos, float x, float y, float z);
     private native void processGpsLocation(long timeNanos, double latitude, double longitude, double altitude, float accuracy);
+    private native void processGpsTime(long timeNanos, double gpsTime);
     private native void recordPoseMatrix(long timeNanos, float[] viewMatrix, String tag);
     private native void writeInfoFile(String mode, String device);
     private native void writeParamsFile();
