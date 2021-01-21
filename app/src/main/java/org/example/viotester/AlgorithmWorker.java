@@ -5,7 +5,6 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.GnssClock;
-import android.location.GnssMeasurement;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -21,16 +20,15 @@ import android.util.Size;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
-import org.codehaus.jackson.annotate.JsonRawValue;
 import org.codehaus.jackson.map.ObjectMapper;
 
 public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listener {
     private static final String TAG = AlgorithmWorker.class.getName();
+    private static final boolean SUPPORTS_GNSS_CLOCK = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
 
     public interface Listener {
         void onOutput(TrackingOutput output);
@@ -98,7 +96,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
             try {
             if (mSettings.recordGps) {
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
-                locationManager.registerGnssMeasurementsCallback(this);
+                if (SUPPORTS_GNSS_CLOCK) locationManager.registerGnssMeasurementsCallback(this);
             }
 
             if (mSettings.recordWiFiLocations)
@@ -110,7 +108,7 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
         }
 
         void stop() {
-            if (mSettings.recordGps) locationManager.unregisterGnssMeasurementsCallback(this);
+            if (mSettings.recordGps && SUPPORTS_GNSS_CLOCK) locationManager.unregisterGnssMeasurementsCallback(this);
             if (mSettings.recordGps || mSettings.recordWiFiLocations) {
                 locationManager.removeUpdates(this);
             }
