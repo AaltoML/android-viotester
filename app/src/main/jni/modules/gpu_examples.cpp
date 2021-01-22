@@ -97,10 +97,11 @@ struct Sobel {
             accelerated::opengl::operations::Factory &ops,
             std::shared_ptr<accelerated::Image> screenBuffer)
     {
-        const float renderBias = -bias / scale + 0.5f;
+        const float renderScale = 1.0 / scale;
+        const float renderBias = -renderScale * bias / scale + 0.5f;
         auto renderOp = ops.affineCombination()
-                .addLinearPart({ {1}, {0}, {0}, {0} })
-                .addLinearPart({ {0}, {1}, {0}, {0} })
+                .addLinearPart({ { renderScale }, {0}, {0}, {0} })
+                .addLinearPart({ {0}, { renderScale }, {0}, {0} })
                 .setBias({ renderBias, renderBias, 0.5, 1 })
                 .build(*bufX, *screenBuffer);
 
