@@ -122,12 +122,14 @@ public class AlgorithmWorker implements SensorEventListener, CameraWorker.Listen
             if (clock.hasBiasNanos() && clock.hasFullBiasNanos() && clock.hasLeapSecond() && clock.hasElapsedRealtimeNanos()) {
                 // Use elapsedRealtimeNanos from GnssClock
                 long elapsedRealtimeNanos = clock.getElapsedRealtimeNanos();
+                // Difference between Unix time epoch (01 Jan 1970) and GPS time epoch (06 Jan 1980) is 315964800 seconds
+                final long fromGpsToEpcohSeconds = 315964800;
                 // Formula: https://developer.android.com/reference/kotlin/android/location/GnssClock#getleapsecond
                 double biasNanos = clock.getBiasNanos();
                 long fullBiasNanos = clock.getFullBiasNanos();
                 long timeNanos  = clock.getTimeNanos();
                 int leapSecond = clock.getLeapSecond();
-                double utcGpsTimeSeconds = (timeNanos - (fullBiasNanos + biasNanos) - leapSecond * 1e9) * 1e-9;
+                double utcGpsTimeSeconds = (timeNanos - (fullBiasNanos + biasNanos) - leapSecond * 1e9) * 1e-9 + fromGpsToEpcohSeconds;
                 processGpsTime(elapsedRealtimeNanos, utcGpsTimeSeconds);
             }
         }
