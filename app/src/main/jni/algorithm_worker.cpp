@@ -48,7 +48,6 @@ JNIEXPORT void JNICALL Java_org_example_viotester_AlgorithmWorker_nativeStop(JNI
         log_warn("Expected algorithm to exist at this point");
         return;
     }
-    algorithm->stop();
     std::atomic_store(&algorithmPtr, std::shared_ptr<AlgorithmModule>(nullptr));
     // dtor may be called here
 }

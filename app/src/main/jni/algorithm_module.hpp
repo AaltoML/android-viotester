@@ -32,8 +32,6 @@ public:
     virtual ~AlgorithmModule() = default;
 
     // these methods are guaranteed to be called from an "algorithm/sensor thread"
-    virtual void stop() {}
-
     virtual void addGyro(double t, const Vector3d &val) = 0;
     virtual void addAcc(double t, const Vector3d &val) = 0;
     virtual void addGps(double t, const Gps &gps) { (void)t; (void)gps; };
