@@ -1,12 +1,14 @@
 #include <jni.h>
-#include <memory>
-#include <atomic>
 
+#include <atomic>
+#include <cassert>
+#include <memory>
+
+#include <fstream>
 #include <Eigen/Dense>
 #include "logging.hpp"
 #include <nlohmann/json.hpp>
 #include "algorithm_module.hpp"
-#include <fstream>
 #include "jniutil.hpp"
 
 using nlohmann::json;

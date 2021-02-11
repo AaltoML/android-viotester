@@ -1,3 +1,4 @@
+#include <cassert>
 #include <jni.h>
 #include "logging.hpp"
 #include "jniutil.hpp"
