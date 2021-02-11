@@ -5,6 +5,8 @@
 #include <memory>
 
 #include <fstream>
+// apparently if the mobile-cv-suite has been compiled with a mismatching NDK version, weird things can happen
+#include <sstream>
 #include <Eigen/Dense>
 #include "logging.hpp"
 #include <nlohmann/json.hpp>
