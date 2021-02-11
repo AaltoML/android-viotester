@@ -5,6 +5,8 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: kunitoki/android-ndk-r21@sha256:ce5aed19936a1f3c99fce2f1135c055248c0faa2f5a930c68e36e81317db4550
     steps:
     - uses: actions/checkout@v2
     - name: Configure
